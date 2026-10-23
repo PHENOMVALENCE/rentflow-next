@@ -5,6 +5,7 @@ import { getPublicListings } from "@/server/rentflow/public-listing-read-model";
 export default async function HomePage() {
   const listings = await getPublicListings();
   const featured = listings[0] ?? null;
+  const featuredImage = featured?.images?.[0];
 
   return (
     <>
@@ -20,9 +21,9 @@ export default async function HomePage() {
             </div>
 
             <div className="relative min-h-[430px] overflow-hidden rounded-[32px] bg-[linear-gradient(135deg,#0b1724,#145c65)] p-6 text-white shadow-2xl">
-              {featured?.images[0] && (
+              {featuredImage && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={`/api/listing-images/${featured.images[0].id}`} alt={featured.images[0].altText ?? featured.title} className="absolute inset-0 h-full w-full object-cover opacity-50" />
+                <img src={`/api/listing-images/${featuredImage.id}`} alt={featuredImage.altText ?? featured?.title ?? "Featured property"} className="absolute inset-0 h-full w-full object-cover opacity-50" />
               )}
               <div className="relative z-10 flex min-h-[382px] flex-col justify-end">
                 <p className="text-sm text-white/60">{featured ? "Featured property" : "Rental operations"}</p>
@@ -38,7 +39,7 @@ export default async function HomePage() {
           <div className="rf-container py-16">
             <div className="mb-8 flex items-end justify-between"><div><p className="rf-eyebrow">Available now</p><h2 className="text-3xl font-semibold">Properties ready to view</h2></div><Link href="/listings" className="text-sm font-medium">View all →</Link></div>
             {listings.length === 0 ? <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No properties are currently published and eligible for viewing.</div> : (
-              <div className="grid gap-5 md:grid-cols-3">{listings.slice(0, 3).map((listing) => <Link href={`/listings/${listing.id}`} key={listing.id} className="rf-card group overflow-hidden"><div className="relative flex h-48 items-end overflow-hidden bg-[linear-gradient(135deg,#dbe9e8,#b7d2ce)] p-5">{listing.images[0] && <img src={`/api/listing-images/${listing.images[0].id}`} alt={listing.images[0].altText ?? listing.title} className="absolute inset-0 h-full w-full object-cover" />}<span className="rf-badge rf-badge-success relative z-10">{listing.status}</span></div><div className="p-5"><p className="text-xs text-[var(--muted)]">{listing.location}</p><h3 className="mt-1 text-lg font-semibold group-hover:text-[var(--brand)]">{listing.title}</h3><p className="mt-3 font-semibold">TZS {listing.monthly.toLocaleString()} <span className="text-xs font-normal text-[var(--muted)]">/ indicative month</span></p></div></Link>)}</div>
+              <div className="grid gap-5 md:grid-cols-3">{listings.slice(0, 3).map((listing) => { const cover = listing.images?.[0]; return <Link href={`/listings/${listing.id}`} key={listing.id} className="rf-card group overflow-hidden"><div className="relative flex h-48 items-end overflow-hidden bg-[linear-gradient(135deg,#dbe9e8,#b7d2ce)] p-5">{cover && <img src={`/api/listing-images/${cover.id}`} alt={cover.altText ?? listing.title} className="absolute inset-0 h-full w-full object-cover" />}<span className="rf-badge rf-badge-success relative z-10">{listing.status}</span></div><div className="p-5"><p className="text-xs text-[var(--muted)]">{listing.location}</p><h3 className="mt-1 text-lg font-semibold group-hover:text-[var(--brand)]">{listing.title}</h3><p className="mt-3 font-semibold">TZS {listing.monthly.toLocaleString()} <span className="text-xs font-normal text-[var(--muted)]">/ indicative month</span></p></div></Link>; })}</div>
             )}
           </div>
         </section>
