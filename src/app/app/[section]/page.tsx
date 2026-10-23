@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader, Status } from "@/components/ui";
 import { canAccessSection, canCreateSection } from "@/server/auth/authorization";
 import { requireSession, type SessionPayload } from "@/server/auth/session";
+import { getAccessibleCommunities } from "@/server/rentflow/community-read-model";
 import { publishListing, pauseListing } from "@/server/rentflow/listing-actions";
 import {
   getLeasesSection,
@@ -33,7 +34,7 @@ const descriptions: Record<SectionName, string> = {
   payments: "Reconcile exact full-term obligations and provider results.",
   supervisors: "Assign operational responsibility by property.",
   maintenance: "Track reported issues through explicit status history.",
-  notices: "Publish operational notices and manage property communication.",
+  notices: "Publish operational notices and use property-scoped community communication.",
   reports: "Monitor authoritative operational metrics and audit evidence.",
   settings: "Organization and platform preferences.",
 };
@@ -49,12 +50,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
 
   return (
     <>
-      <PageHeader
-        eyebrow="Operations"
-        title={titles[section]}
-        description={descriptions[section]}
-        action={createLabel ? <Link href={`/app/${section}/new`} className="rf-button rf-button-dark">New {createLabel}</Link> : undefined}
-      />
+      <PageHeader eyebrow="Operations" title={titles[section]} description={descriptions[section]} action={createLabel ? <Link href={`/app/${section}/new`} className="rf-button rf-button-dark">New {createLabel}</Link> : undefined} />
       {await renderSection(section, session)}
     </>
   );
@@ -68,7 +64,22 @@ async function renderSection(section: SectionName, session: SessionPayload) {
   if (section === "units") return <Cards rows={await getUnitsSection(session)} />;
   if (section === "tenants") return <Cards rows={await getTenantsSection(session)} />;
   if (section === "supervisors") return <Cards rows={await getSupervisorsSection(session)} />;
-  if (section === "notices") return <Cards rows={await getNoticesSection(session)} />;
+
+  if (section === "notices") {
+    const [notices, communities] = await Promise.all([getNoticesSection(session), getAccessibleCommunities(session)]);
+    return (
+      <div className="space-y-6">
+        <section>
+          <div className="mb-3 flex items-end justify-between gap-3"><div><h2 className="font-semibold">Safety notices</h2><p className="mt-1 text-xs text-[var(--muted)]">Organization and property-scoped operational communication</p></div></div>
+          <Cards rows={notices} />
+        </section>
+        <section>
+          <div className="mb-3 flex items-end justify-between gap-3"><div><h2 className="font-semibold">Communities</h2><p className="mt-1 text-xs text-[var(--muted)]">Membership and property eligibility are checked server-side.</p></div></div>
+          {communities.length === 0 ? <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No communities are available in your scope.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{communities.map((community) => <Link key={community.id} href={`/app/community/${community.id}`} className="rf-card p-5"><div className="flex items-center justify-between gap-3"><Status>{community.joined ? "Joined" : "Available"}</Status><span className="text-xs text-[var(--muted)]">{community.members} members</span></div><h3 className="mt-4 font-semibold">{community.name}</h3><p className="mt-1 text-sm text-[var(--muted)]">{community.messages} messages · {community.propertyId ? "Property scoped" : "Organization wide"}</p><p className="mt-4 text-xs font-medium">Open community →</p></Link>)}</div>}
+        </section>
+      </div>
+    );
+  }
 
   if (section === "maintenance") {
     const rows = await getMaintenanceSection(session);
