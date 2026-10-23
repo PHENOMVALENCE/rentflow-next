@@ -4,7 +4,7 @@ import type { Role } from "@prisma/client";
 import { logoutAction } from "@/server/auth/actions";
 
 const roleNav: Record<Role, string[]> = {
-  PLATFORM_ADMIN: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
+  PLATFORM_ADMIN: ["dashboard", "platform", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
   LANDLORD: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
   PROPERTY_ADMIN: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports"],
   SUPERVISOR: ["dashboard", "units", "tenants", "maintenance", "notices"],
