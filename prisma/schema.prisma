@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role { LANDLORD PROPERTY_ADMIN TENANT SUPERVISOR PLATFORM_ADMIN }
+enum PropertyType { RESIDENTIAL COMMERCIAL MIXED_USE }
+enum UnitType { APARTMENT SHOP OFFICE STORE OTHER }
+enum LeaseStatus { DRAFT AWAITING_PAYMENT ACTIVE RENEWAL_WINDOW GRACE RENEWED EXPIRED TERMINATED }
+enum PaymentStatus { INITIATED PENDING SUCCEEDED FAILED CANCELLED REVERSED EXCEPTION }
+enum ObligationStatus { PENDING PAID EXCEPTION CANCELLED }
+enum MaintenanceStatus { REPORTED ACKNOWLEDGED ASSIGNED IN_PROGRESS RESOLVED CLOSED REOPENED }
+enum ListingStatus { DRAFT ELIGIBLE PUBLISHED PAUSED WITHDRAWN BLOCKED }
+
+model User {
+  id String @id @default(cuid())
+  name String
+  email String @unique
+  phone String?
+  role Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  memberships OrganizationMember[]
+  supervisorAssignments SupervisorAssignment[]
+}
+
+model Organization {
+  id String @id @default(cuid())
+  name String
+  createdAt DateTime @default(now())
+  memberships OrganizationMember[]
+  properties Property[]
+  tenants Tenant[]
+  auditLogs AuditLog[]
+}
+
+model OrganizationMember {
+  id String @id @default(cuid())
+  organizationId String
+  userId String
+  role Role
+  organization Organization @relation(fields:[organizationId], references:[id], onDelete: Cascade)
+  user User @relation(fields:[userId], references:[id], onDelete: Cascade)
+  @@unique([organizationId,userId])
+}
+
+model Property {
+  id String @id @default(cuid())
+  organizationId String
+  name String
+  type PropertyType
+  address String
+  region String
+  district String
+  ward String?
+  active Boolean @default(true)
+  organization Organization @relation(fields:[organizationId], references:[id], onDelete: Cascade)
+  units Unit[]
+  supervisorAssignments SupervisorAssignment[]
+  maintenanceRequests MaintenanceRequest[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([organizationId])
+}
+
+model Unit {
+  id String @id @default(cuid())
+  propertyId String
+  unitNumber String
+  type UnitType
+  monthlyRent Decimal? @db.Decimal(14,2)
+  currency String @default("TZS")
+  floor String?
+  property Property @relation(fields:[propertyId], references:[id], onDelete: Cascade)
+  leases Lease[]
+  listing PropertyListing?
+  @@unique([propertyId,unitNumber])
+}
+
+model Tenant {
+  id String @id @default(cuid())
+  organizationId String
+  name String
+  phone String
+  email String?
+  organization Organization @relation(fields:[organizationId], references:[id], onDelete: Cascade)
+  leases Lease[]
+  maintenanceRequests MaintenanceRequest[]
+  createdAt DateTime @default(now())
+  @@index([organizationId,phone])
+}
+
+model Lease {
+  id String @id @default(cuid())
+  unitId String
+  tenantId String
+  predecessorLeaseId String?
+  termMonths Int
+  startDate DateTime
+  endDate DateTime
+  fullTermAmount Decimal @db.Decimal(14,2)
+  currency String @default("TZS")
+  status LeaseStatus
+  unit Unit @relation(fields:[unitId], references:[id])
+  tenant Tenant @relation(fields:[tenantId], references:[id])
+  obligation PaymentObligation?
+  predecessor Lease? @relation("LeaseSuccessor", fields:[predecessorLeaseId], references:[id])
+  successor Lease[] @relation("LeaseSuccessor")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([unitId,status])
+  @@index([status,endDate])
+}
+
+model PaymentObligation {
+  id String @id @default(cuid())
+  leaseId String @unique
+  internalReference String @unique
+  amount Decimal @db.Decimal(14,2)
+  currency String @default("TZS")
+  status ObligationStatus @default(PENDING)
+  lease Lease @relation(fields:[leaseId], references:[id], onDelete: Cascade)
+  transactions PaymentTransaction[]
+}
+
+model PaymentTransaction {
+  id String @id @default(cuid())
+  obligationId String
+  provider String
+  providerReference String? @unique
+  requestedAmount Decimal @db.Decimal(14,2)
+  receivedAmount Decimal? @db.Decimal(14,2)
+  currency String @default("TZS")
+  status PaymentStatus
+  obligation PaymentObligation @relation(fields:[obligationId], references:[id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PropertyListing {
+  id String @id @default(cuid())
+  unitId String @unique
+  title String
+  description String
+  status ListingStatus
+  publishedAt DateTime?
+  unit Unit @relation(fields:[unitId], references:[id], onDelete: Cascade)
+}
+
+model SupervisorAssignment {
+  id String @id @default(cuid())
+  userId String
+  propertyId String
+  active Boolean @default(true)
+  user User @relation(fields:[userId], references:[id], onDelete: Cascade)
+  property Property @relation(fields:[propertyId], references:[id], onDelete: Cascade)
+  @@unique([userId,propertyId])
+}
+
+model MaintenanceRequest {
+  id String @id @default(cuid())
+  propertyId String
+  tenantId String
+  title String
+  description String
+  priority String
+  status MaintenanceStatus @default(REPORTED)
+  property Property @relation(fields:[propertyId], references:[id])
+  tenant Tenant @relation(fields:[tenantId], references:[id])
+  updates MaintenanceUpdate[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MaintenanceUpdate {
+  id String @id @default(cuid())
+  requestId String
+  status MaintenanceStatus
+  note String?
+  actorId String?
+  createdAt DateTime @default(now())
+  request MaintenanceRequest @relation(fields:[requestId], references:[id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  organizationId String?
+  actorId String?
+  action String
+  resourceType String
+  resourceId String?
+  metadata Json?
+  createdAt DateTime @default(now())
+  organization Organization? @relation(fields:[organizationId], references:[id], onDelete: SetNull)
+  @@index([organizationId,createdAt])
+}

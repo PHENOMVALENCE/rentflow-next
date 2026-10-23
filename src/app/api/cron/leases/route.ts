@@ -1,0 +1,1 @@
+export async function GET(request:Request){const secret=process.env.CRON_SECRET;const auth=request.headers.get("authorization");if(secret&&auth!==`Bearer ${secret}`)return Response.json({ok:false,error:"Unauthorized"},{status:401});return Response.json({ok:true,processed:0,message:"Lease transition trigger is ready; persistence adapter is not configured in demo mode."})}

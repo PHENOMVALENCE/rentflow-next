@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function PublicNav(){return <header className="border-b border-[var(--border)] bg-white/95 sticky top-0 z-20"><div className="rf-container flex h-16 items-center justify-between"><Link href="/" className="font-semibold text-xl tracking-tight"><span className="text-[var(--brand)]">Rent</span>Flow</Link><nav className="flex items-center gap-6 text-sm"><Link href="/listings">Properties</Link><Link href="/#how">How it works</Link><Link href="/app" className="rf-button rf-button-dark">Open app</Link></nav></div></header>}
