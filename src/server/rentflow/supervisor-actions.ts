@@ -1,30 +1,12 @@
 "use server";
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { normalizeTanzaniaPhone } from "@/server/auth/phone";
 import { requireSession } from "@/server/auth/session";
+import { createSupervisorInviteToken } from "@/server/auth/supervisor-invite-token";
 import { db } from "@/server/db";
-
-export type SupervisorInviteTokenPayload = {
-  version: 1;
-  nonce: string;
-  name: string;
-  phone: string;
-  propertyId: string;
-};
-
-export function decodeSupervisorInviteToken(token: string): SupervisorInviteTokenPayload | null {
-  try {
-    const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8")) as Partial<SupervisorInviteTokenPayload>;
-    if (payload.version !== 1 || !payload.nonce || !payload.name || !payload.phone || !payload.propertyId) return null;
-    if (!/^255\d{9}$/.test(payload.phone)) return null;
-    return payload as SupervisorInviteTokenPayload;
-  } catch {
-    return null;
-  }
-}
 
 export async function inviteSupervisor(formData: FormData) {
   const session = await requireSession(["PLATFORM_ADMIN", "LANDLORD", "PROPERTY_ADMIN"]);
@@ -38,14 +20,7 @@ export async function inviteSupervisor(formData: FormData) {
   const property = await db.property.findFirst({ where: { id: propertyId, organizationId: session.organizationId, active: true }, select: { id: true, name: true } });
   if (!property) throw new Error("Select an active property in this organization.");
 
-  const payload: SupervisorInviteTokenPayload = {
-    version: 1,
-    nonce: randomBytes(24).toString("base64url"),
-    name,
-    phone,
-    propertyId,
-  };
-  const rawToken = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const rawToken = createSupervisorInviteToken({ name, phone, propertyId });
   const tokenHash = createHash("sha256").update(rawToken).digest("hex");
   const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
