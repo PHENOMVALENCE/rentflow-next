@@ -8,7 +8,7 @@ export async function isPinSignInLocked(userId: string) {
   const latestVerifiedAccess = await db.auditLog.findFirst({
     where: {
       actorId: userId,
-      action: { in: ["account.pin_sign_in_success", "account.pin_recovery_verified"] },
+      action: { in: ["account.pin_sign_in_success", "account.pin_recovery_verified", "account.pin_reset"] },
     },
     orderBy: { createdAt: "desc" },
     select: { createdAt: true },
