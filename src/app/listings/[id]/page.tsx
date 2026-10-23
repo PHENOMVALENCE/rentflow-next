@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicNav } from "@/components/public-nav";
 import { Status } from "@/components/ui";
-import { getPublicListing } from "@/server/rentflow/read-model";
+import { getPublicListing } from "@/server/rentflow/public-listing-read-model";
 
 export default async function ListingDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,6 +10,7 @@ export default async function ListingDetail({ params }: { params: Promise<{ id: 
   if (!listing) notFound();
 
   const total = listing.monthly * listing.term;
+  const [hero, ...gallery] = listing.images;
 
   return (
     <>
@@ -18,7 +19,25 @@ export default async function ListingDetail({ params }: { params: Promise<{ id: 
         <Link href="/listings" className="text-sm text-[var(--muted-strong)]">← Back to properties</Link>
         <div className="mt-6 grid gap-8 lg:grid-cols-[1.15fr_.85fr]">
           <div>
-            <div className="flex h-[440px] items-end rounded-[28px] bg-[linear-gradient(135deg,#e2efed,#a8c9c4)] p-6"><Status>{listing.status}</Status></div>
+            <div className="relative flex h-[440px] items-end overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#e2efed,#a8c9c4)] p-6">
+              {hero && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`/api/listing-images/${hero.id}`} alt={hero.altText ?? listing.title} className="absolute inset-0 h-full w-full object-cover" />
+              )}
+              <div className="relative z-10"><Status>{listing.status}</Status></div>
+            </div>
+
+            {gallery.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {gallery.slice(0, 6).map((image) => (
+                  <div key={image.id} className="overflow-hidden rounded-2xl bg-slate-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/api/listing-images/${image.id}`} alt={image.altText ?? listing.title} className="aspect-[4/3] h-full w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="mt-8">
               <p className="rf-eyebrow">{listing.location} · {listing.type}</p>
               <h1 className="text-4xl font-semibold">{listing.title}</h1>
