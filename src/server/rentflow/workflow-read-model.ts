@@ -1,3 +1,4 @@
+import type { SessionPayload } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
 
 const label = (value: string) => value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -31,13 +32,45 @@ export async function getListingsManagement(organizationId: string | null) {
   });
 }
 
-export async function getMaintenanceWorkflow(id: string, organizationId: string | null) {
+export async function getMaintenanceWorkflow(id: string, session: SessionPayload) {
   if (!hasDatabaseConfiguration()) return null;
+
+  if (session.role === "TENANT") {
+    const tenant = await db.tenant.findFirst({
+      where: { userId: session.userId, ...(session.organizationId ? { organizationId: session.organizationId } : {}) },
+      select: { id: true },
+    });
+    if (!tenant) return null;
+    return db.maintenanceRequest.findFirst({
+      where: { id, tenantId: tenant.id },
+      include: {
+        property: true,
+        unit: true,
+        tenant: true,
+        updates: { orderBy: { createdAt: "asc" } },
+      },
+    });
+  }
+
+  if (session.role === "SUPERVISOR") {
+    return db.maintenanceRequest.findFirst({
+      where: {
+        id,
+        property: { supervisorAssignments: { some: { userId: session.userId, active: true } } },
+      },
+      include: {
+        property: true,
+        unit: true,
+        tenant: true,
+        updates: { orderBy: { createdAt: "asc" } },
+      },
+    });
+  }
 
   return db.maintenanceRequest.findFirst({
     where: {
       id,
-      ...(organizationId ? { property: { organizationId } } : {}),
+      ...(session.organizationId ? { property: { organizationId: session.organizationId } } : {}),
     },
     include: {
       property: true,
