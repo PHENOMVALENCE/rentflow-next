@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { PageHeader, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { uploadListingImageAction, removeListingImageAction } from "@/server/rentflow/listing-image-actions";
@@ -62,7 +63,7 @@ export default async function ListingMediaPage({ params, searchParams }: { param
   );
 }
 
-function Message({ tone, children }: { tone: "success" | "error"; children: React.ReactNode }) {
+function Message({ tone, children }: { tone: "success" | "error"; children: ReactNode }) {
   const classes = tone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800";
   return <div className={`mb-5 rounded-xl border p-3 text-sm ${classes}`}>{children}</div>;
 }
