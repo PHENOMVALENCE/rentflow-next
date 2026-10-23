@@ -1,5 +1,5 @@
 export type ListingImage = { id: string; altText: string | null };
-export type Listing = { id:string; title:string; location:string; type:string; unit:string; monthly:number; term:number; bedrooms:number; baths:number; status:string; description:string; features:string[]; images: ListingImage[] };
+export type Listing = { id:string; title:string; location:string; type:string; unit:string; monthly:number; term:number; bedrooms:number; baths:number; status:string; description:string; features:string[]; images?: ListingImage[] };
 
 export const listings: Listing[] = [
  {id:"ocean-view-a2",title:"Ocean View Apartments",location:"Masaki, Dar es Salaam",type:"Residential",unit:"Apartment A2",monthly:850000,term:6,bedrooms:2,baths:2,status:"Available",description:"A bright two-bedroom apartment with secure access, balcony space and reliable property support.",features:["Secure parking","Balcony","Water reserve","24/7 security"],images:[]},
