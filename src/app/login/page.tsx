@@ -2,7 +2,7 @@ import Link from "next/link";
 import { loginAction } from "@/server/auth/actions";
 import { hasDatabaseConfiguration } from "@/server/db";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; reset?: string }> }) {
   const query = await searchParams;
   const databaseReady = hasDatabaseConfiguration();
 
@@ -15,6 +15,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <h1 className="text-3xl font-semibold">Sign in to RentFlow</h1>
           <p className="mt-2 text-sm text-[var(--muted-strong)]">Use your phone number and 4-digit account PIN.</p>
 
+          {query.reset === "1" && <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Your account PIN was reset successfully. Sign in with the new PIN.</div>}
           {query.error === "invalid" && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">Invalid phone number or PIN.</div>}
           {!databaseReady && <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Database authentication is not configured yet. The preview dashboard remains available in demo mode.</div>}
 
