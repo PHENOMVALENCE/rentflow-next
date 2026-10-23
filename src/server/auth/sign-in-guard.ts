@@ -4,12 +4,22 @@ const WINDOW_MS = 10 * 60 * 1000;
 const MAX_FAILURES = 5;
 
 export async function isPinSignInLocked(userId: string) {
-  const since = new Date(Date.now() - WINDOW_MS);
+  const windowStart = new Date(Date.now() - WINDOW_MS);
+  const latestVerifiedAccess = await db.auditLog.findFirst({
+    where: {
+      actorId: userId,
+      action: { in: ["account.pin_sign_in_success", "account.pin_recovery_verified"] },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  const since = latestVerifiedAccess && latestVerifiedAccess.createdAt > windowStart ? latestVerifiedAccess.createdAt : windowStart;
+
   const failures = await db.auditLog.count({
     where: {
       actorId: userId,
       action: "account.pin_sign_in_failed",
-      createdAt: { gte: since },
+      createdAt: { gt: since },
     },
   });
   return failures >= MAX_FAILURES;
