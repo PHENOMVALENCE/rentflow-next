@@ -1,3 +1,4 @@
+import type { SessionPayload } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
 import {
   dashboard as demoDashboard,
@@ -11,23 +12,54 @@ import {
 const money = new Intl.NumberFormat("en-TZ", { maximumFractionDigits: 0 });
 const date = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 const titleCase = (value: string) => value.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (x) => x.toUpperCase());
+const protectedStates = ["AWAITING_PAYMENT", "ACTIVE", "RENEWAL_WINDOW", "GRACE"] as const;
 
-export async function getDashboardReadModel() {
+function emptyDashboard() {
+  return {
+    dashboard: {
+      properties: 0,
+      units: 0,
+      occupied: 0,
+      listed: 0,
+      renewal: 0,
+      grace: 0,
+      paymentExceptions: 0,
+      maintenance: 0,
+      revenue: "TZS 0",
+      collection: "0%",
+    },
+    leases: [],
+    maintenance: [],
+    source: "database" as const,
+  };
+}
+
+export async function getDashboardReadModel(session: SessionPayload) {
   if (!hasDatabaseConfiguration()) {
     return { dashboard: demoDashboard, leases: demoLeases, maintenance: demoMaintenance, source: "demo" as const };
   }
 
+  if (session.role === "TENANT") return getTenantDashboard(session);
+  if (session.role === "SUPERVISOR") return getSupervisorDashboard(session);
+  return getPortfolioDashboard(session.organizationId);
+}
+
+async function getPortfolioDashboard(organizationId: string | null) {
+  const propertyScope = organizationId ? { organizationId } : {};
+  const unitScope = organizationId ? { property: { organizationId } } : {};
+  const leaseScope = organizationId ? { unit: { property: { organizationId } } } : {};
+
   const [properties, units, occupied, listed, renewal, grace, paymentExceptions, maintenance, obligations, paid] = await Promise.all([
-    db.property.count({ where: { active: true } }),
-    db.unit.count(),
-    db.unit.count({ where: { leases: { some: { status: { in: ["ACTIVE", "RENEWAL_WINDOW", "GRACE"] } } } } }),
-    db.propertyListing.count({ where: { status: "PUBLISHED" } }),
-    db.lease.count({ where: { status: "RENEWAL_WINDOW" } }),
-    db.lease.count({ where: { status: "GRACE" } }),
-    db.paymentObligation.count({ where: { status: "EXCEPTION" } }),
-    db.maintenanceRequest.count({ where: { status: { notIn: ["RESOLVED", "CLOSED"] } } }),
-    db.paymentObligation.aggregate({ _sum: { amount: true }, where: { status: { in: ["PENDING", "PAID", "EXCEPTION"] } } }),
-    db.paymentObligation.aggregate({ _sum: { amount: true }, where: { status: "PAID" } }),
+    db.property.count({ where: { active: true, ...propertyScope } }),
+    db.unit.count({ where: unitScope }),
+    db.unit.count({ where: { ...unitScope, leases: { some: { status: { in: ["ACTIVE", "RENEWAL_WINDOW", "GRACE"] } } } } }),
+    db.propertyListing.count({ where: { status: "PUBLISHED", unit: unitScope } }),
+    db.lease.count({ where: { ...leaseScope, status: "RENEWAL_WINDOW" } }),
+    db.lease.count({ where: { ...leaseScope, status: "GRACE" } }),
+    db.paymentObligation.count({ where: { status: "EXCEPTION", lease: leaseScope } }),
+    db.maintenanceRequest.count({ where: { status: { notIn: ["RESOLVED", "CLOSED"] }, ...(organizationId ? { property: { organizationId } } : {}) } }),
+    db.paymentObligation.aggregate({ _sum: { amount: true }, where: { status: { in: ["PENDING", "PAID", "EXCEPTION"] }, lease: leaseScope } }),
+    db.paymentObligation.aggregate({ _sum: { amount: true }, where: { status: "PAID", lease: leaseScope } }),
   ]);
 
   const totalAmount = Number(obligations._sum.amount ?? 0);
@@ -35,40 +67,165 @@ export async function getDashboardReadModel() {
   const collection = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
 
   const leaseRows = await db.lease.findMany({
-    where: { status: { in: ["RENEWAL_WINDOW", "GRACE", "AWAITING_PAYMENT", "ACTIVE"] } },
+    where: { ...leaseScope, status: { in: [...protectedStates] } },
     include: { tenant: true, unit: { include: { property: true } } },
     orderBy: { endDate: "asc" },
     take: 6,
   });
 
   const maintenanceRows = await db.maintenanceRequest.findMany({
-    where: { status: { notIn: ["RESOLVED", "CLOSED"] } },
+    where: { status: { notIn: ["RESOLVED", "CLOSED"] }, ...(organizationId ? { property: { organizationId } } : {}) },
     include: { property: true, tenant: true },
     orderBy: { updatedAt: "desc" },
     take: 6,
   });
 
+  return mapDashboard({ properties, units, occupied, listed, renewal, grace, paymentExceptions, maintenance, totalAmount, paidAmount, collection, leaseRows, maintenanceRows });
+}
+
+async function getSupervisorDashboard(session: SessionPayload) {
+  const assignments = await db.supervisorAssignment.findMany({
+    where: { userId: session.userId, active: true },
+    select: { propertyId: true },
+  });
+  const propertyIds = assignments.map((assignment) => assignment.propertyId);
+  if (propertyIds.length === 0) return emptyDashboard();
+
+  const [units, occupied, listed, renewal, grace, maintenance] = await Promise.all([
+    db.unit.count({ where: { propertyId: { in: propertyIds } } }),
+    db.unit.count({ where: { propertyId: { in: propertyIds }, leases: { some: { status: { in: ["ACTIVE", "RENEWAL_WINDOW", "GRACE"] } } } } }),
+    db.propertyListing.count({ where: { status: "PUBLISHED", unit: { propertyId: { in: propertyIds } } } }),
+    db.lease.count({ where: { unit: { propertyId: { in: propertyIds } }, status: "RENEWAL_WINDOW" } }),
+    db.lease.count({ where: { unit: { propertyId: { in: propertyIds } }, status: "GRACE" } }),
+    db.maintenanceRequest.count({ where: { propertyId: { in: propertyIds }, status: { notIn: ["RESOLVED", "CLOSED"] } } }),
+  ]);
+
+  const leaseRows = await db.lease.findMany({
+    where: { unit: { propertyId: { in: propertyIds } }, status: { in: [...protectedStates] } },
+    include: { tenant: true, unit: { include: { property: true } } },
+    orderBy: { endDate: "asc" },
+    take: 6,
+  });
+  const maintenanceRows = await db.maintenanceRequest.findMany({
+    where: { propertyId: { in: propertyIds }, status: { notIn: ["RESOLVED", "CLOSED"] } },
+    include: { property: true, tenant: true },
+    orderBy: { updatedAt: "desc" },
+    take: 6,
+  });
+
+  return mapDashboard({
+    properties: propertyIds.length,
+    units,
+    occupied,
+    listed,
+    renewal,
+    grace,
+    paymentExceptions: 0,
+    maintenance,
+    totalAmount: 0,
+    paidAmount: 0,
+    collection: 0,
+    leaseRows,
+    maintenanceRows,
+  });
+}
+
+async function getTenantDashboard(session: SessionPayload) {
+  const tenant = await db.tenant.findFirst({
+    where: { userId: session.userId, ...(session.organizationId ? { organizationId: session.organizationId } : {}) },
+  });
+  if (!tenant) return emptyDashboard();
+
+  const leaseRows = await db.lease.findMany({
+    where: { tenantId: tenant.id, status: { in: [...protectedStates, "EXPIRED"] } },
+    include: { tenant: true, unit: { include: { property: true } } },
+    orderBy: { endDate: "asc" },
+    take: 6,
+  });
+  const maintenanceRows = await db.maintenanceRequest.findMany({
+    where: { tenantId: tenant.id },
+    include: { property: true, tenant: true },
+    orderBy: { updatedAt: "desc" },
+    take: 6,
+  });
+
+  const obligations = await db.paymentObligation.findMany({
+    where: { lease: { tenantId: tenant.id } },
+    select: { amount: true, status: true },
+  });
+  const totalAmount = obligations.reduce((sum, item) => sum + Number(item.amount), 0);
+  const paidAmount = obligations.filter((item) => item.status === "PAID").reduce((sum, item) => sum + Number(item.amount), 0);
+  const activeLeases = leaseRows.filter((lease) => protectedStates.includes(lease.status as (typeof protectedStates)[number]));
+  const propertyIds = new Set(activeLeases.map((lease) => lease.unit.propertyId));
+  const unitIds = new Set(activeLeases.map((lease) => lease.unitId));
+
+  return mapDashboard({
+    properties: propertyIds.size,
+    units: unitIds.size,
+    occupied: unitIds.size,
+    listed: 0,
+    renewal: leaseRows.filter((lease) => lease.status === "RENEWAL_WINDOW").length,
+    grace: leaseRows.filter((lease) => lease.status === "GRACE").length,
+    paymentExceptions: obligations.filter((item) => item.status === "EXCEPTION").length,
+    maintenance: maintenanceRows.filter((item) => !["RESOLVED", "CLOSED"].includes(item.status)).length,
+    totalAmount,
+    paidAmount,
+    collection: totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0,
+    leaseRows,
+    maintenanceRows,
+  });
+}
+
+type DashboardInput = {
+  properties: number;
+  units: number;
+  occupied: number;
+  listed: number;
+  renewal: number;
+  grace: number;
+  paymentExceptions: number;
+  maintenance: number;
+  totalAmount: number;
+  paidAmount: number;
+  collection: number;
+  leaseRows: Array<{
+    tenant: { name: string };
+    unit: { unitNumber: string; property: { name: string } };
+    status: string;
+    endDate: Date;
+    fullTermAmount: unknown;
+  }>;
+  maintenanceRows: Array<{
+    title: string;
+    priority: string;
+    status: string;
+    property: { name: string };
+    tenant: { name: string };
+  }>;
+};
+
+function mapDashboard(input: DashboardInput) {
   return {
     dashboard: {
-      properties,
-      units,
-      occupied,
-      listed,
-      renewal,
-      grace,
-      paymentExceptions,
-      maintenance,
-      revenue: `TZS ${money.format(paidAmount)}`,
-      collection: `${collection}%`,
+      properties: input.properties,
+      units: input.units,
+      occupied: input.occupied,
+      listed: input.listed,
+      renewal: input.renewal,
+      grace: input.grace,
+      paymentExceptions: input.paymentExceptions,
+      maintenance: input.maintenance,
+      revenue: `TZS ${money.format(input.paidAmount)}`,
+      collection: `${input.collection}%`,
     },
-    leases: leaseRows.map((lease) => ({
+    leases: input.leaseRows.map((lease) => ({
       tenant: lease.tenant.name,
       unit: `${lease.unit.property.name} · ${lease.unit.unitNumber}`,
       status: titleCase(lease.status),
       end: date.format(lease.endDate),
       amount: `TZS ${money.format(Number(lease.fullTermAmount))}`,
     })),
-    maintenance: maintenanceRows.map((item) => ({
+    maintenance: input.maintenanceRows.map((item) => ({
       title: item.title,
       property: item.property.name,
       tenant: item.tenant.name,
