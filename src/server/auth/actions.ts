@@ -6,6 +6,7 @@ import { db, hasDatabaseConfiguration } from "@/server/db";
 import { normalizeTanzaniaPhone } from "./phone";
 import { verifyPin } from "./password";
 import { clearSession, createSession } from "./session";
+import { isPinSignInLocked, recordPinSignInFailure, recordPinSignInSuccess } from "./sign-in-guard";
 
 const loginSchema = z.object({
   phone: z.string().trim().min(9).max(20),
@@ -36,18 +37,28 @@ export async function loginAction(formData: FormData) {
     take: 2,
   });
   const user = candidates.length === 1 ? candidates[0] : null;
-  if (!user?.passwordHash || !verifyPin(input.data.pin, user.passwordHash)) {
+
+  if (!user) redirect("/login?error=invalid");
+  const membership = user.memberships[0];
+  const organizationId = membership?.organizationId ?? null;
+
+  if (await isPinSignInLocked(user.id)) redirect("/login?error=locked");
+
+  if (!user.passwordHash || !verifyPin(input.data.pin, user.passwordHash)) {
+    await recordPinSignInFailure(user.id, organizationId);
     redirect("/login?error=invalid");
   }
 
-  const membership = user.memberships[0];
   await createSession({
     userId: user.id,
-    organizationId: membership?.organizationId ?? null,
+    organizationId,
     role: membership?.role ?? user.role,
   });
 
-  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  await Promise.all([
+    db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }),
+    recordPinSignInSuccess(user.id, organizationId),
+  ]);
   redirect("/app");
 }
 
