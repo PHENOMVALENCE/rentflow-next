@@ -8,17 +8,16 @@ import { db } from "@/server/db";
 const statusSchema = z.enum(["NEW", "CONTACTED", "QUALIFIED", "CLOSED"]);
 
 async function getScopedInquiry(id: string, organizationId: string | null) {
-  return db.propertyInquiry.findFirst({
-    where: {
-      id,
-      ...(organizationId
-        ? {
-            listingId: { not: null },
-            AND: { listing: { unit: { property: { organizationId } } } },
-          }
-        : {}),
-    },
+  const inquiry = await db.propertyInquiry.findUnique({ where: { id } });
+  if (!inquiry) return null;
+  if (!organizationId) return inquiry;
+  if (!inquiry.listingId) return null;
+
+  const listing = await db.propertyListing.findFirst({
+    where: { id: inquiry.listingId, unit: { property: { organizationId } } },
+    select: { id: true },
   });
+  return listing ? inquiry : null;
 }
 
 export async function updateInquiryStatus(formData: FormData) {
