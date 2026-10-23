@@ -10,7 +10,7 @@ export default async function ListingDetail({ params }: { params: Promise<{ id: 
   if (!listing) notFound();
 
   const total = listing.monthly * listing.term;
-  const [hero, ...gallery] = listing.images;
+  const [hero, ...gallery] = listing.images ?? [];
 
   return (
     <>
