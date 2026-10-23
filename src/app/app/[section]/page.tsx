@@ -76,7 +76,7 @@ async function renderSection(section: SectionName, session: SessionPayload) {
       <div className="space-y-6">
         <section>
           <div className="mb-3"><h2 className="font-semibold">Safety notices</h2><p className="mt-1 text-xs text-[var(--muted)]">Organization and property-scoped operational communication</p></div>
-          <Cards rows={notices} />
+          {notices.length === 0 ? <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No safety notices are available in your scope.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{notices.map((notice) => <Link key={notice.id} href={`/app/notices/${notice.id}`} className="rf-card p-5"><div className="flex items-center justify-between gap-3"><Status>{notice.status}</Status>{notice.meta && <span className="text-xs text-[var(--muted)]">{notice.meta}</span>}</div><h3 className="mt-4 font-semibold">{notice.title}</h3><p className="mt-1 text-sm text-[var(--muted)]">{notice.subtitle}</p><p className="mt-4 text-xs font-medium">Open notice →</p></Link>)}</div>}
         </section>
         <section>
           <div className="mb-3"><h2 className="font-semibold">Communities</h2><p className="mt-1 text-xs text-[var(--muted)]">Membership and property eligibility are checked server-side.</p></div>
