@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { PageHeader, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { hasDatabaseConfiguration } from "@/server/db";
+import { isBriqOtpConfigured } from "@/server/integrations/briq-otp";
+import { isBriqWhatsAppConfigured } from "@/server/integrations/briq-whatsapp";
 import {
   getPlatformActivity,
   getPlatformIncidents,
@@ -11,6 +13,7 @@ import {
   getPlatformUsers,
   type PlatformRow,
 } from "@/server/rentflow/platform-read-model";
+import { hasPrivateObjectStorage } from "@/server/storage/private-object-store";
 
 const allowed = [
   "organizations",
@@ -94,9 +97,9 @@ async function renderSection(section: PlatformSection) {
   if (section === "integrations") {
     const cards = [
       ["Snippe", process.env.SNIPPE_API_KEY ? "CONFIGURED" : "PENDING", "Exact-term payment initiation and webhook reconciliation adapter."],
-      ["SMS / OTP", process.env.BRIQ_API_KEY ? "CONFIGURED" : "PENDING", "Briq credentials are required before OTP/SMS delivery can be enabled."],
-      ["WhatsApp", process.env.WHATSAPP_ACCESS_TOKEN ? "CONFIGURED" : "PENDING", "Meta/provider credentials are required for WhatsApp delivery."],
-      ["Private storage", process.env.STORAGE_BUCKET ? "CONFIGURED" : "PENDING", "Agreement, maintenance and listing media require private object storage."],
+      ["Briq OTP / SMS", isBriqOtpConfigured() ? "CONFIGURED" : "PENDING", "Briq API credentials are required before OTP/SMS delivery can be enabled."],
+      ["Briq WhatsApp", isBriqWhatsAppConfigured() ? "CONFIGURED" : "PENDING", "WhatsApp remains off until the provider is enabled and approved templates are available."],
+      ["Private storage", hasPrivateObjectStorage() ? "CONFIGURED" : "PENDING", "Agreement, maintenance and listing media require an authorized private object-store adapter."],
     ];
     return <DiagnosticCards rows={cards} />;
   }
