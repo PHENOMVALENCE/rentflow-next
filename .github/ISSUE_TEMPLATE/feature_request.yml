@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a RentFlow capability or enhancement
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or operational problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Domain / security implications
+      description: Note impact on lease, payment, availability, authorization, privacy or integrations.

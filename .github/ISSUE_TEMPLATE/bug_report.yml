@@ -1,0 +1,27 @@
+name: Bug report
+description: Report incorrect RentFlow behavior
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the observed behavior without including private tenant/payment data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Public listings, Authentication, Properties, Units, Tenants, Leases, Payments, Maintenance, Supervisors, Notices, Reporting, Deployment]
