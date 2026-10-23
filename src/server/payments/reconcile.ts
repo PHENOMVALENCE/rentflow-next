@@ -13,8 +13,8 @@ export async function reconcileProviderEvent(event: ProviderEvent) {
 
   return db.$transaction(async (tx) => {
     if (event.eventId) {
-      const duplicate = await tx.paymentTransaction.findUnique({ where: { eventId: event.eventId } });
-      if (duplicate) return { effect: "NOOP" as const, transactionId: duplicate.id };
+      const duplicateEvent = await tx.paymentTransaction.findUnique({ where: { eventId: event.eventId } });
+      if (duplicateEvent) return { effect: "NOOP" as const, transactionId: duplicateEvent.id };
     }
 
     const obligation = await tx.paymentObligation.findUnique({
@@ -22,6 +22,13 @@ export async function reconcileProviderEvent(event: ProviderEvent) {
       include: { lease: true },
     });
     if (!obligation) throw new Error("Payment obligation not found.");
+
+    const existing = await tx.paymentTransaction.findUnique({
+      where: { providerReference: event.providerReference },
+    });
+    if (existing && existing.obligationId !== obligation.id) {
+      throw new Error("Provider reference is already attached to another obligation.");
+    }
 
     const exact = reconcileExactPayment({
       required: Number(obligation.amount),
@@ -31,28 +38,38 @@ export async function reconcileProviderEvent(event: ProviderEvent) {
       alreadyPaid: obligation.status === "PAID",
     });
 
-    if (exact.effect === "NOOP") return { effect: "NOOP" as const };
+    if (exact.effect === "NOOP") {
+      if (existing && event.eventId && !existing.eventId) {
+        await tx.paymentTransaction.update({ where: { id: existing.id }, data: { eventId: event.eventId } });
+      }
+      return { effect: "NOOP" as const, transactionId: existing?.id };
+    }
 
     const isCompleted = event.providerStatus === "COMPLETED";
     const status = !isCompleted ? "FAILED" : exact.effect === "MARK_PAID" ? "SUCCEEDED" : "EXCEPTION";
-
-    const transaction = await tx.paymentTransaction.create({
-      data: {
-        obligationId: obligation.id,
-        provider: "SNIPPE",
-        providerReference: event.providerReference,
-        eventId: event.eventId,
-        requestedAmount: obligation.amount,
-        receivedAmount: event.receivedAmount,
-        currency: event.currency || obligation.currency,
-        status,
-        rawPayload: {
-          providerStatus: event.providerStatus,
-          controlNumber: event.controlNumber,
-        },
-        failureReason: isCompleted && exact.effect === "EXCEPTION" ? "AMOUNT_OR_CURRENCY_MISMATCH" : null,
+    const transactionData = {
+      eventId: event.eventId,
+      receivedAmount: event.receivedAmount,
+      currency: event.currency || obligation.currency,
+      status,
+      rawPayload: {
+        providerStatus: event.providerStatus,
+        controlNumber: event.controlNumber,
       },
-    });
+      failureReason: isCompleted && exact.effect === "EXCEPTION" ? "AMOUNT_OR_CURRENCY_MISMATCH" : null,
+    } as const;
+
+    const transaction = existing
+      ? await tx.paymentTransaction.update({ where: { id: existing.id }, data: transactionData })
+      : await tx.paymentTransaction.create({
+          data: {
+            obligationId: obligation.id,
+            provider: "SNIPPE",
+            providerReference: event.providerReference,
+            requestedAmount: obligation.amount,
+            ...transactionData,
+          },
+        });
 
     if (!isCompleted) {
       await tx.auditLog.create({
