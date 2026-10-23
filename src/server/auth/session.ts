@@ -11,6 +11,7 @@ export type SessionPayload = {
   userId: string;
   organizationId: string | null;
   role: Role;
+  credentialTag?: string;
   exp: number;
 };
 
@@ -22,6 +23,10 @@ function secret() {
 
 function sign(value: string) {
   return createHmac("sha256", secret()).update(value).digest("base64url");
+}
+
+function credentialTag(passwordHash: string | null) {
+  return createHmac("sha256", secret()).update(`credential:${passwordHash ?? "UNSET"}`).digest("base64url");
 }
 
 function encode(payload: SessionPayload) {
@@ -45,11 +50,18 @@ function decode(token: string): SessionPayload | null {
   }
 }
 
-export async function createSession(input: Omit<SessionPayload, "exp">) {
+export async function createSession(input: Omit<SessionPayload, "exp" | "credentialTag">) {
+  let tag: string | undefined;
+  if (hasDatabaseConfiguration()) {
+    const user = await db.user.findUnique({ where: { id: input.userId }, select: { passwordHash: true } });
+    if (!user) throw new Error("Cannot create a session for an unknown user.");
+    tag = credentialTag(user.passwordHash);
+  }
+
   const jar = await cookies();
   jar.set(
     COOKIE_NAME,
-    encode({ ...input, exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS }),
+    encode({ ...input, credentialTag: tag, exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS }),
     {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -72,7 +84,16 @@ export async function getSession(): Promise<SessionPayload | null> {
 
   const jar = await cookies();
   const token = jar.get(COOKIE_NAME)?.value;
-  return token ? decode(token) : null;
+  const payload = token ? decode(token) : null;
+  if (!payload?.credentialTag) return null;
+
+  const user = await db.user.findUnique({ where: { id: payload.userId }, select: { passwordHash: true } });
+  if (!user) return null;
+  const expectedTag = Buffer.from(credentialTag(user.passwordHash));
+  const actualTag = Buffer.from(payload.credentialTag);
+  if (expectedTag.length !== actualTag.length || !timingSafeEqual(expectedTag, actualTag)) return null;
+
+  return payload;
 }
 
 export async function requireSession(allowedRoles?: Role[]) {
