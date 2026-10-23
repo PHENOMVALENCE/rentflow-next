@@ -18,6 +18,7 @@ export type StoredObject = {
 export interface PrivateObjectStore {
   readonly provider: string;
   put(input: { key: string; bytes: Uint8Array; mimeType: string }): Promise<StoredObject>;
+  get(key: string): Promise<Uint8Array>;
   delete(key: string): Promise<void>;
   createDownloadUrl(key: string, expiresInSeconds: number): Promise<string>;
 }
@@ -50,15 +51,16 @@ class LocalPrivateObjectStore implements PrivateObjectStore {
     return { key: input.key, sizeBytes: input.bytes.byteLength, mimeType: input.mimeType };
   }
 
+  async get(key: string): Promise<Uint8Array> {
+    return readFile(this.resolve(key));
+  }
+
   async delete(key: string): Promise<void> {
     await rm(this.resolve(key), { force: true });
   }
 
-  async createDownloadUrl(key: string): Promise<string> {
-    // Local storage is exposed only through RentFlow's authorized route, never as a raw file URL.
-    const bytes = await readFile(this.resolve(key));
-    if (!bytes.byteLength) throw new StorageConfigurationError("Stored object is empty or unavailable.");
-    throw new StorageConfigurationError("Local private storage does not issue external download URLs.");
+  async createDownloadUrl(): Promise<string> {
+    throw new StorageConfigurationError("Local private storage must be streamed by RentFlow's authorized route.");
   }
 }
 
@@ -70,6 +72,10 @@ class UnconfiguredPrivateObjectStore implements PrivateObjectStore {
   }
 
   async put(): Promise<StoredObject> {
+    return this.unavailable();
+  }
+
+  async get(): Promise<Uint8Array> {
     return this.unavailable();
   }
 
