@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { PageHeader } from "@/components/ui";
 import { changeAccountPinAction } from "@/server/auth/account-actions";
 import { getSessionUser, requireSession } from "@/server/auth/session";
@@ -52,6 +53,6 @@ function PinField({ name, label, autoComplete }: { name: string; label: string; 
   return <label className="block text-sm font-medium">{label}<input required type="password" name={name} inputMode="numeric" autoComplete={autoComplete} pattern="[0-9]{4}" minLength={4} maxLength={4} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 tracking-[0.45em]" /></label>;
 }
 
-function ErrorMessage({ children }: { children: React.ReactNode }) {
+function ErrorMessage({ children }: { children: ReactNode }) {
   return <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{children}</div>;
 }
