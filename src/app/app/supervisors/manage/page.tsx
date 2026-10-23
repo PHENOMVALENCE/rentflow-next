@@ -46,7 +46,7 @@ export default async function SupervisorManagementPage({ searchParams }: { searc
       {query.error === "pin_reset_denied" && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">This supervisor account cannot be reset from the current organization context.</div>}
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <SupervisorInviteForm />
+        <SupervisorInviteForm properties={properties.map((property) => ({ id: property.id, name: property.name }))} />
 
         <section className="rf-card p-6">
           <h2 className="font-semibold">Assign property access</h2>
