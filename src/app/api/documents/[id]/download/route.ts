@@ -19,7 +19,21 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!leaseDocument) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   try {
-    const url = await getPrivateObjectStore().createDownloadUrl(leaseDocument.document.storageKey, 60);
+    const store = getPrivateObjectStore();
+
+    if (store.provider === "LOCAL") {
+      const bytes = await store.get(leaseDocument.document.storageKey);
+      return new Response(bytes, {
+        headers: {
+          "Content-Type": leaseDocument.document.mimeType || "application/octet-stream",
+          "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(leaseDocument.document.name)}`,
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
+
+    const url = await store.createDownloadUrl(leaseDocument.document.storageKey, 60);
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") throw new StorageConfigurationError("Private storage returned a non-HTTPS download URL.");
 
