@@ -9,6 +9,8 @@ type InviteState = {
   error?: string;
 };
 
+type PropertyOption = { id: string; name: string };
+
 async function inviteAction(_previous: InviteState, formData: FormData): Promise<InviteState> {
   try {
     const result = await inviteSupervisor(formData);
@@ -18,17 +20,22 @@ async function inviteAction(_previous: InviteState, formData: FormData): Promise
   }
 }
 
-export function SupervisorInviteForm() {
+export function SupervisorInviteForm({ properties }: { properties: PropertyOption[] }) {
   const [state, action, pending] = useActionState(inviteAction, {});
   const invitePath = state.token ? `/supervisors/accept?token=${encodeURIComponent(state.token)}` : null;
 
   return (
     <div className="rf-card p-6">
       <h2 className="font-semibold">Invite supervisor</h2>
-      <p className="mt-1 text-xs leading-5 text-[var(--muted)]">The raw token is shown once and is never stored in the database. Share the generated link securely.</p>
-      <form action={action} className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <input name="email" type="email" required placeholder="supervisor@example.com" className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm" />
-        <button type="submit" disabled={pending} className="rf-button rf-button-dark">{pending ? "Creating…" : "Create invite"}</button>
+      <p className="mt-1 text-xs leading-5 text-[var(--muted)]">The invite is tied to the intended phone number and first property. The raw token is shown once and is never stored in the database.</p>
+      <form action={action} className="mt-5 space-y-4">
+        <label className="block text-sm font-medium">Full name<input name="name" required minLength={2} maxLength={160} placeholder="Supervisor name" className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm" /></label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-medium">Phone<input name="phone" type="tel" required placeholder="0712 345 678" className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm" /></label>
+          <label className="block text-sm font-medium">Email<input name="email" type="email" required placeholder="supervisor@example.com" className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm" /></label>
+        </div>
+        <label className="block text-sm font-medium">Initial property<select name="propertyId" required className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm"><option value="">Select property</option>{properties.map((property) => <option key={property.id} value={property.id}>{property.name}</option>)}</select></label>
+        <button type="submit" disabled={pending || properties.length === 0} className="rf-button rf-button-dark">{pending ? "Creating…" : "Create invite"}</button>
       </form>
       {state.error && <p className="mt-4 text-sm text-red-700">{state.error}</p>}
       {invitePath && (
