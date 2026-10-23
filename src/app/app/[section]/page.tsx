@@ -1,13 +1,121 @@
-import {notFound} from "next/navigation";import {leases,maintenance,payments,properties} from "@/lib/demo-data";import {PageHeader,Status} from "@/components/ui";
-const allowed=["properties","units","listings","tenants","leases","payments","supervisors","maintenance","notices","reports","settings"] as const;
-const titles:Record<string,string>={properties:"Properties",units:"Units",listings:"Listings",tenants:"Tenants",leases:"Leases",payments:"Payments",supervisors:"Supervisors",maintenance:"Maintenance",notices:"Notices & community",reports:"Reports & audit",settings:"Settings"};
-export default async function Section({params}:{params:Promise<{section:string}>}){const {section}=await params;if(!allowed.includes(section as typeof allowed[number]))notFound();return <><PageHeader eyebrow="Operations" title={titles[section]} description={description(section)} action={section!=="reports"&&section!=="settings"?<button className="rf-button rf-button-dark">New {singular(section)}</button>:undefined}/>{content(section)}</>}
-function singular(s:string){return ({properties:"property",units:"unit",listings:"listing",tenants:"tenant",leases:"lease",payments:"payment",supervisors:"supervisor",maintenance:"request",notices:"notice"} as Record<string,string>)[s]||"record"}
-function description(s:string){return ({properties:"Manage buildings, official addresses and portfolio-level operational context.",units:"Manage individually rentable spaces and derived occupancy.",listings:"Control public presentation without overriding authoritative occupancy.",tenants:"Manage tenant records and current rental relationships.",leases:"Track 3/6-month terms, renewal windows, grace and expiry.",payments:"Reconcile exact full-term obligations and provider results.",supervisors:"Assign operational responsibility by property.",maintenance:"Track reported issues through explicit status history.",notices:"Publish operational notices and manage property communication.",reports:"Monitor authoritative operational metrics and audit evidence.",settings:"Organization and platform preferences."} as Record<string,string>)[s]}
-function content(s:string){if(s==="properties")return <div className="rf-card overflow-hidden"><div className="rf-table-head"><span>Property</span><span>Units</span><span>Occupancy</span><span>Supervisor</span></div>{properties.map(x=><div className="rf-table-row" key={x.name}><div><p className="font-medium">{x.name}</p><p className="text-xs text-[var(--muted)]">{x.location}</p></div><span>{x.units}</span><span>{x.occupied}/{x.units} · {x.listed} listed</span><span>{x.supervisor}</span></div>)}</div>;
-if(s==="leases")return <div className="rf-card">{leases.map(x=><div key={x.tenant} className="p-5 border-b last:border-b-0 border-[var(--border)] flex justify-between gap-4"><div><p className="font-medium">{x.tenant}</p><p className="text-xs text-[var(--muted)] mt-1">{x.unit} · {x.amount}</p></div><div className="text-right"><Status>{x.status}</Status><p className="text-xs mt-2">{x.end}</p></div></div>)}</div>;
-if(s==="payments")return <div className="rf-card">{payments.map(x=><div key={x.reference} className="p-5 border-b last:border-b-0 border-[var(--border)] grid gap-3 md:grid-cols-4 md:items-center"><div><p className="font-mono text-xs">{x.reference}</p><p className="font-medium mt-1">{x.tenant}</p></div><span>{x.amount}</span><span>{x.provider}</span><span className="md:text-right"><Status>{x.status}</Status></span></div>)}</div>;
-if(s==="maintenance")return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{maintenance.map(x=><div className="rf-card p-5" key={x.title}><div className="flex justify-between"><Status>{x.priority}</Status><Status>{x.status}</Status></div><h3 className="mt-5 font-semibold">{x.title}</h3><p className="mt-2 text-sm text-[var(--muted)]">{x.property}</p><p className="text-xs text-[var(--muted)]">Reported by {x.tenant}</p></div>)}</div>;
-if(s==="reports")return <div className="grid gap-4 md:grid-cols-3">{[["Occupancy","80%"],["Collection","91%"],["Open maintenance","5"],["Renewal window","4"],["Grace","2"],["Listing inventory","6"]].map(([a,b])=><div className="rf-card p-6" key={a}><p className="text-sm text-[var(--muted)]">{a}</p><p className="mt-2 text-3xl font-semibold">{b}</p></div>)}</div>;
-if(s==="settings")return <div className="rf-card p-6 max-w-2xl"><h2 className="font-semibold">Organization profile</h2><div className="mt-6 grid gap-5"><label className="rf-field">Organization name<input defaultValue="Valence Properties"/></label><label className="rf-field">Contact email<input defaultValue="operations@example.co.tz"/></label><label className="rf-field">Default currency<input defaultValue="TZS" disabled/></label><button className="rf-button rf-button-dark w-fit">Save changes</button></div></div>;
-const samples:Record<string,[string,string,string][]>={units:[["A2","Ocean View Apartments","Occupied"],["B4","Mbezi Garden Residences","Available"],["S12","Kariakoo Trade Centre","Available"]],listings:[["Ocean View · A2","Masaki","Published"],["Mbezi Garden · B4","Mbezi Beach","Published"],["Palm Court · C3","Mikocheni","Blocked by occupancy"]],tenants:[["Rehema K.","Ocean View · A2","Active"],["Daniel M.","Mbezi Garden · B4","Active"],["Grace N.","Kariakoo · S12","Grace"]],supervisors:[["Asha M.","Ocean View Apartments","Active"],["Kelvin J.","Mbezi Garden Residences","Active"],["Neema S.","Kariakoo Trade Centre","Active"]],notices:[["Water maintenance notice","Ocean View Apartments","Published"],["Security access update","Mbezi Garden Residences","Published"],["Community meeting","Palm Court","Draft"]]};const rows=samples[s]||[];return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map(([a,b,c])=><div className="rf-card p-5" key={a}><Status>{c}</Status><h3 className="mt-4 font-semibold">{a}</h3><p className="mt-1 text-sm text-[var(--muted)]">{b}</p><button className="mt-5 text-sm font-medium">View details →</button></div>)}</div>}
+import { notFound } from "next/navigation";
+import { PageHeader, Status } from "@/components/ui";
+import { requireSession } from "@/server/auth/session";
+import {
+  getLeasesSection,
+  getMaintenanceSection,
+  getNoticesSection,
+  getPaymentsSection,
+  getPropertiesSection,
+  getReportsSection,
+  getSupervisorsSection,
+  getTenantsSection,
+  getUnitsSection,
+  type CardRow,
+} from "@/server/rentflow/operations-read-model";
+
+const allowed = ["properties", "units", "listings", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"] as const;
+type SectionName = (typeof allowed)[number];
+
+const titles: Record<SectionName, string> = {
+  properties: "Properties",
+  units: "Units",
+  listings: "Listings",
+  tenants: "Tenants",
+  leases: "Leases",
+  payments: "Payments",
+  supervisors: "Supervisors",
+  maintenance: "Maintenance",
+  notices: "Notices & community",
+  reports: "Reports & audit",
+  settings: "Settings",
+};
+
+const descriptions: Record<SectionName, string> = {
+  properties: "Manage buildings, official addresses and portfolio-level operational context.",
+  units: "Manage individually rentable spaces and derived occupancy.",
+  listings: "Control public presentation without overriding authoritative occupancy.",
+  tenants: "Manage tenant records and current rental relationships.",
+  leases: "Track 3/6-month terms, renewal windows, grace and expiry.",
+  payments: "Reconcile exact full-term obligations and provider results.",
+  supervisors: "Assign operational responsibility by property.",
+  maintenance: "Track reported issues through explicit status history.",
+  notices: "Publish operational notices and manage property communication.",
+  reports: "Monitor authoritative operational metrics and audit evidence.",
+  settings: "Organization and platform preferences.",
+};
+
+const singular: Partial<Record<SectionName, string>> = {
+  properties: "property",
+  units: "unit",
+  listings: "listing",
+  tenants: "tenant",
+  leases: "lease",
+  payments: "payment",
+  supervisors: "supervisor",
+  maintenance: "request",
+  notices: "notice",
+};
+
+export default async function Section({ params }: { params: Promise<{ section: string }> }) {
+  const { section: rawSection } = await params;
+  if (!allowed.includes(rawSection as SectionName)) notFound();
+  const section = rawSection as SectionName;
+  const session = await requireSession();
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Operations"
+        title={titles[section]}
+        description={descriptions[section]}
+        action={singular[section] ? <a href={`/app/${section}/new`} className="rf-button rf-button-dark">New {singular[section]}</a> : undefined}
+      />
+      {await renderSection(section, session.organizationId)}
+    </>
+  );
+}
+
+async function renderSection(section: SectionName, organizationId: string | null) {
+  if (section === "properties") {
+    const rows = await getPropertiesSection(organizationId);
+    return (
+      <div className="rf-card overflow-hidden">
+        <div className="rf-table-head"><span>Property</span><span>Location</span><span>Occupancy</span><span>Supervisor</span></div>
+        {rows.map((row) => <div className="rf-table-row" key={row.id}><div><p className="font-medium">{row.primary}</p></div><span>{row.secondary}</span><span>{row.tertiary}</span><span>{row.quaternary}</span></div>)}
+      </div>
+    );
+  }
+
+  if (section === "units") return <Cards rows={await getUnitsSection(organizationId)} />;
+  if (section === "tenants") return <Cards rows={await getTenantsSection(organizationId)} />;
+  if (section === "supervisors") return <Cards rows={await getSupervisorsSection(organizationId)} />;
+  if (section === "maintenance") return <Cards rows={await getMaintenanceSection(organizationId)} />;
+  if (section === "notices") return <Cards rows={await getNoticesSection(organizationId)} />;
+
+  if (section === "leases") {
+    const rows = await getLeasesSection(organizationId);
+    return <div className="rf-card">{rows.map((row) => <div key={row.id} className="flex justify-between gap-4 border-b border-[var(--border)] p-5 last:border-b-0"><div><p className="font-medium">{row.tenant}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.unit} · {row.amount}</p></div><div className="text-right"><Status>{row.status}</Status><p className="mt-2 text-xs">{row.end}</p></div></div>)}</div>;
+  }
+
+  if (section === "payments") {
+    const rows = await getPaymentsSection(organizationId);
+    return <div className="rf-card">{rows.map((row) => <div key={row.id} className="grid gap-3 border-b border-[var(--border)] p-5 last:border-b-0 md:grid-cols-4 md:items-center"><div><p className="font-mono text-xs">{row.reference}</p><p className="mt-1 font-medium">{row.tenant}</p></div><span>{row.amount}</span><span>{row.provider}</span><span className="md:text-right"><Status>{row.status}</Status></span></div>)}</div>;
+  }
+
+  if (section === "reports") {
+    const rows = await getReportsSection(organizationId);
+    return <div className="grid gap-4 md:grid-cols-3">{rows.map(([name, value]) => <div className="rf-card p-6" key={name}><p className="text-sm text-[var(--muted)]">{name}</p><p className="mt-2 text-3xl font-semibold">{value}</p></div>)}</div>;
+  }
+
+  if (section === "listings") {
+    return <div className="rf-card p-6"><h2 className="font-semibold">Listing controls</h2><p className="mt-2 text-sm text-[var(--muted-strong)]">Listing data is authoritative from the database. Create or edit listings through the listing workflow; occupied and protected units remain blocked from publication.</p><a href="/listings" className="rf-button rf-button-light mt-5">Open public marketplace</a></div>;
+  }
+
+  return <div className="rf-card max-w-2xl p-6"><h2 className="font-semibold">Organization settings</h2><p className="mt-2 text-sm text-[var(--muted-strong)]">Workspace identity, authentication and provider settings are controlled server-side. Sensitive provider secrets are configured only through runtime environment variables.</p></div>;
+}
+
+function Cards({ rows }: { rows: CardRow[] }) {
+  if (rows.length === 0) return <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No records found.</div>;
+  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map((row) => <div className="rf-card p-5" key={row.id}><div className="flex items-center justify-between gap-3"><Status>{row.status}</Status>{row.meta && <span className="text-xs text-[var(--muted)]">{row.meta}</span>}</div><h3 className="mt-4 font-semibold">{row.title}</h3><p className="mt-1 text-sm text-[var(--muted)]">{row.subtitle}</p></div>)}</div>;
+}
