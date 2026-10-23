@@ -1,9 +1,9 @@
 import type { Role } from "@prisma/client";
 
 export const sectionPermissions: Record<Role, readonly string[]> = {
-  PLATFORM_ADMIN: ["properties", "units", "listings", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
-  LANDLORD: ["properties", "units", "listings", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
-  PROPERTY_ADMIN: ["properties", "units", "listings", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports"],
+  PLATFORM_ADMIN: ["properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
+  LANDLORD: ["properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
+  PROPERTY_ADMIN: ["properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports"],
   SUPERVISOR: ["units", "tenants", "maintenance", "notices"],
   TENANT: ["leases", "payments", "maintenance", "notices"],
 };
