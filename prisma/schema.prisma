@@ -7,18 +7,101 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role { LANDLORD PROPERTY_ADMIN TENANT SUPERVISOR PLATFORM_ADMIN }
-enum PropertyType { RESIDENTIAL COMMERCIAL MIXED_USE }
-enum UnitType { APARTMENT SHOP OFFICE STORE OTHER }
-enum LeaseStatus { DRAFT AWAITING_PAYMENT ACTIVE RENEWAL_WINDOW GRACE RENEWED EXPIRED TERMINATED }
-enum PaymentStatus { INITIATED PENDING SUCCEEDED FAILED CANCELLED REVERSED EXCEPTION }
-enum ObligationStatus { PENDING PAID EXCEPTION CANCELLED }
-enum MaintenanceStatus { REPORTED ACKNOWLEDGED ASSIGNED IN_PROGRESS RESOLVED CLOSED REOPENED }
-enum ListingStatus { DRAFT ELIGIBLE PUBLISHED PAUSED WITHDRAWN BLOCKED }
-enum NotificationStatus { PENDING SENT FAILED READ }
-enum DocumentVisibility { PRIVATE ORGANIZATION TENANT PUBLIC }
-enum InquiryStatus { NEW CONTACTED QUALIFIED CLOSED }
-enum IncidentStatus { OPEN ACKNOWLEDGED RESOLVED }
+enum Role {
+  LANDLORD
+  PROPERTY_ADMIN
+  TENANT
+  SUPERVISOR
+  PLATFORM_ADMIN
+}
+
+enum PropertyType {
+  RESIDENTIAL
+  COMMERCIAL
+  MIXED_USE
+}
+
+enum UnitType {
+  APARTMENT
+  SHOP
+  OFFICE
+  STORE
+  OTHER
+}
+
+enum LeaseStatus {
+  DRAFT
+  AWAITING_PAYMENT
+  ACTIVE
+  RENEWAL_WINDOW
+  GRACE
+  RENEWED
+  EXPIRED
+  TERMINATED
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REVERSED
+  EXCEPTION
+}
+
+enum ObligationStatus {
+  PENDING
+  PAID
+  EXCEPTION
+  CANCELLED
+}
+
+enum MaintenanceStatus {
+  REPORTED
+  ACKNOWLEDGED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+enum ListingStatus {
+  DRAFT
+  ELIGIBLE
+  PUBLISHED
+  PAUSED
+  WITHDRAWN
+  BLOCKED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+enum DocumentVisibility {
+  PRIVATE
+  ORGANIZATION
+  TENANT
+  PUBLIC
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CLOSED
+}
+
+enum IncidentStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
 
 model User {
   id                    String   @id @default(cuid())
@@ -59,6 +142,7 @@ model OrganizationMember {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
+
   @@unique([organizationId, userId])
   @@index([organizationId, role])
 }
@@ -72,12 +156,13 @@ model Region {
 }
 
 model District {
-  id        String   @id @default(cuid())
-  regionId  String
-  code      String
-  name      String
-  region    Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
-  wards     Ward[]
+  id       String @id @default(cuid())
+  regionId String
+  code     String
+  name     String
+  region   Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  wards    Ward[]
+
   @@unique([regionId, code])
 }
 
@@ -88,6 +173,7 @@ model Ward {
   name       String
   district   District @relation(fields: [districtId], references: [id], onDelete: Cascade)
   streets    StreetVillage[]
+
   @@unique([districtId, code])
 }
 
@@ -97,6 +183,7 @@ model StreetVillage {
   name   String
   kind   String @default("STREET")
   ward   Ward   @relation(fields: [wardId], references: [id], onDelete: Cascade)
+
   @@index([wardId, name])
 }
 
@@ -112,13 +199,14 @@ model GeoImportBatch {
 }
 
 model GeoImportRecord {
-  id        String @id @default(cuid())
+  id        String         @id @default(cuid())
   batchId   String
   rowNumber Int
   status    String
   payload   Json
   error     String?
   batch     GeoImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
   @@index([batchId, status])
 }
 
@@ -142,6 +230,7 @@ model Property {
   maintenanceRequests   MaintenanceRequest[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
   @@index([organizationId])
   @@index([region, district])
 }
@@ -153,44 +242,47 @@ model Building {
   floors     Int?
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   units      Unit[]
+
   @@unique([propertyId, name])
 }
 
 model Unit {
-  id             String   @id @default(cuid())
-  propertyId     String
-  buildingId     String?
-  unitNumber     String
-  type           UnitType
-  monthlyRent    Decimal? @db.Decimal(14, 2)
-  currency       String   @default("TZS")
-  floor          String?
-  bedrooms       Int?
-  bathrooms      Int?
-  listingEnabled Boolean  @default(false)
-  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  building       Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
-  leases         Lease[]
-  listing        PropertyListing?
+  id                  String   @id @default(cuid())
+  propertyId          String
+  buildingId          String?
+  unitNumber          String
+  type                UnitType
+  monthlyRent         Decimal? @db.Decimal(14, 2)
+  currency            String   @default("TZS")
+  floor               String?
+  bedrooms            Int?
+  bathrooms           Int?
+  listingEnabled      Boolean  @default(false)
+  property            Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  building            Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  leases              Lease[]
+  listing             PropertyListing?
   maintenanceRequests MaintenanceRequest[]
+
   @@unique([propertyId, unitNumber])
   @@index([propertyId, listingEnabled])
 }
 
 model Tenant {
-  id             String       @id @default(cuid())
-  organizationId String
-  userId         String?
-  name           String
-  phone          String
-  email          String?
-  status         String       @default("ACTIVE")
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  profile        TenantProfile?
-  leases         Lease[]
+  id                  String       @id @default(cuid())
+  organizationId      String
+  userId              String?
+  name                String
+  phone               String
+  email               String?
+  status              String       @default("ACTIVE")
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile             TenantProfile?
+  leases              Lease[]
   maintenanceRequests MaintenanceRequest[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
   @@index([organizationId, phone])
   @@index([userId])
 }
@@ -217,6 +309,7 @@ model TenantAttachmentRequest {
   dueAt       DateTime?
   fulfilledAt DateTime?
   createdAt   DateTime @default(now())
+
   @@index([tenantId, status])
 }
 
@@ -231,6 +324,7 @@ model Prospect {
   notes          String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
   @@index([organizationId, status])
 }
 
@@ -245,6 +339,7 @@ model PropertyInquiry {
   status     InquiryStatus @default(NEW)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
+
   @@index([listingId, status])
 }
 
@@ -270,6 +365,7 @@ model Lease {
   documents          LeaseDocument[]
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
+
   @@index([unitId, status])
   @@index([status, endDate])
   @@index([tenantId, status])
@@ -316,6 +412,7 @@ model PaymentTransaction {
   obligation        PaymentObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
   @@index([obligationId, status])
 }
 
@@ -338,6 +435,7 @@ model SupervisorAssignment {
   endsAt     DateTime?
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
   @@unique([userId, propertyId])
 }
 
@@ -349,6 +447,7 @@ model SupervisorInvite {
   expiresAt      DateTime
   acceptedAt     DateTime?
   createdAt      DateTime @default(now())
+
   @@index([organizationId, email])
 }
 
@@ -368,6 +467,7 @@ model MaintenanceRequest {
   updates     MaintenanceUpdate[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
   @@index([propertyId, status])
 }
 
@@ -397,14 +497,15 @@ model Document {
 }
 
 model LeaseDocument {
-  id         String   @id @default(cuid())
-  leaseId    String
-  documentId String
-  kind       String
-  required   Boolean  @default(false)
-  lease      Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  leaseId          String
+  documentId       String
+  kind             String
+  required         Boolean  @default(false)
+  lease            Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   acknowledgements DocumentAcknowledgement[]
+
   @@unique([leaseId, documentId])
 }
 
@@ -416,6 +517,7 @@ model DocumentAcknowledgement {
   ipAddress       String?
   userAgent       String?
   leaseDocument   LeaseDocument @relation(fields: [leaseDocumentId], references: [id], onDelete: Cascade)
+
   @@unique([leaseDocumentId, userId])
 }
 
@@ -427,6 +529,7 @@ model OrganizationLeaseTemplate {
   active         Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
   @@index([organizationId, active])
 }
 
@@ -442,6 +545,7 @@ model Notification {
   metadata  Json?
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
   @@index([userId, status, createdAt])
 }
 
@@ -455,6 +559,7 @@ model SmsMessage {
   failure     String?
   createdAt   DateTime @default(now())
   sentAt      DateTime?
+
   @@index([status, createdAt])
 }
 
@@ -475,6 +580,7 @@ model CommunityMember {
   role        String   @default("MEMBER")
   joinedAt    DateTime @default(now())
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
   @@unique([communityId, userId])
 }
 
@@ -487,6 +593,7 @@ model CommunityMessage {
   createdAt   DateTime @default(now())
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   reports     CommunityMessageReport[]
+
   @@index([communityId, createdAt])
 }
 
@@ -498,19 +605,20 @@ model CommunityMessageReport {
   status     String   @default("OPEN")
   createdAt  DateTime @default(now())
   message    CommunityMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
   @@index([status, createdAt])
 }
 
 model SafetyNotice {
-  id             String   @id @default(cuid())
-  organizationId String
-  propertyId     String?
-  title          String
-  body           String
-  severity       String   @default("INFO")
-  publishedAt    DateTime?
-  expiresAt      DateTime?
-  createdAt      DateTime @default(now())
+  id               String   @id @default(cuid())
+  organizationId   String
+  propertyId       String?
+  title            String
+  body             String
+  severity         String   @default("INFO")
+  publishedAt      DateTime?
+  expiresAt        DateTime?
+  createdAt        DateTime @default(now())
   acknowledgements SafetyNoticeAcknowledgement[]
 }
 
@@ -520,6 +628,7 @@ model SafetyNoticeAcknowledgement {
   userId         String
   acknowledgedAt DateTime @default(now())
   notice         SafetyNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
   @@unique([noticeId, userId])
 }
 
@@ -535,6 +644,7 @@ model PropertyListing {
   images      ListingImage[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
   @@index([status, publishedAt])
 }
 
@@ -545,6 +655,7 @@ model ListingImage {
   altText    String?
   position   Int      @default(0)
   listing    PropertyListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
   @@index([listingId, position])
 }
 
@@ -556,6 +667,7 @@ model OperationalDocument {
   storageKey     String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
   @@index([organizationId, category])
 }
 
@@ -571,6 +683,7 @@ model AuditLog {
   correlationId  String?
   createdAt      DateTime @default(now())
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
   @@index([organizationId, createdAt])
   @@index([resourceType, resourceId])
 }
@@ -585,15 +698,16 @@ model ShortLink {
 }
 
 model PlatformIncident {
-  id              String         @id @default(cuid())
-  service         String
-  severity        String
-  status          IncidentStatus @default(OPEN)
-  summary         String
-  correlationId   String?
-  details         Json?
-  openedAt        DateTime       @default(now())
-  acknowledgedAt  DateTime?
-  resolvedAt      DateTime?
+  id               String         @id @default(cuid())
+  service          String
+  severity         String
+  status           IncidentStatus @default(OPEN)
+  summary          String
+  correlationId    String?
+  details          Json?
+  openedAt         DateTime       @default(now())
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+
   @@index([status, severity, openedAt])
 }
