@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui";
+import { canCreateSection } from "@/server/auth/authorization";
 import { requireSession } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
 import { createProperty, createUnit } from "@/server/rentflow/property-actions";
@@ -27,6 +28,7 @@ export default async function NewRecordPage({ params }: { params: Promise<{ sect
   if (!supported.includes(rawSection as SupportedSection)) notFound();
   const section = rawSection as SupportedSection;
   const session = await requireSession();
+  if (!canCreateSection(session.role, section)) notFound();
 
   if (!hasDatabaseConfiguration()) {
     return (
@@ -46,17 +48,77 @@ export default async function NewRecordPage({ params }: { params: Promise<{ sect
   }
 
   const organizationId = session.organizationId;
+  let propertyIds: string[] | undefined;
+  let tenantUserId: string | undefined;
+
+  if (session.role === "SUPERVISOR") {
+    const assignments = await db.supervisorAssignment.findMany({
+      where: { userId: session.userId, active: true },
+      select: { propertyId: true },
+    });
+    propertyIds = assignments.map((assignment) => assignment.propertyId);
+  }
+
+  if (session.role === "TENANT") {
+    tenantUserId = session.userId;
+    const tenant = await db.tenant.findFirst({
+      where: { userId: session.userId, ...(organizationId ? { organizationId } : {}) },
+      include: {
+        leases: {
+          where: { status: { in: ["AWAITING_PAYMENT", "ACTIVE", "RENEWAL_WINDOW", "GRACE"] } },
+          select: { unit: { select: { propertyId: true } } },
+        },
+      },
+    });
+    propertyIds = tenant?.leases.map((lease) => lease.unit.propertyId) ?? [];
+  }
+
   const properties = await db.property.findMany({
-    where: organizationId ? { organizationId, active: true } : { active: true },
+    where: {
+      active: true,
+      ...(organizationId ? { organizationId } : {}),
+      ...(propertyIds ? { id: { in: propertyIds } } : {}),
+    },
     orderBy: { name: "asc" },
   });
+
   const units = await db.unit.findMany({
-    where: organizationId ? { property: { organizationId } } : undefined,
+    where: {
+      property: {
+        ...(organizationId ? { organizationId } : {}),
+        ...(propertyIds ? { id: { in: propertyIds } } : {}),
+      },
+      ...(tenantUserId
+        ? {
+            leases: {
+              some: {
+                tenant: { userId: tenantUserId },
+                status: { in: ["AWAITING_PAYMENT", "ACTIVE", "RENEWAL_WINDOW", "GRACE"] },
+              },
+            },
+          }
+        : {}),
+    },
     include: { property: true, leases: true },
     orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }],
   });
+
   const tenants = await db.tenant.findMany({
-    where: organizationId ? { organizationId } : undefined,
+    where: tenantUserId
+      ? { userId: tenantUserId, ...(organizationId ? { organizationId } : {}) }
+      : {
+          ...(organizationId ? { organizationId } : {}),
+          ...(propertyIds
+            ? {
+                leases: {
+                  some: {
+                    unit: { propertyId: { in: propertyIds } },
+                    status: { in: ["AWAITING_PAYMENT", "ACTIVE", "RENEWAL_WINDOW", "GRACE"] },
+                  },
+                },
+              }
+            : {}),
+        },
     orderBy: { name: "asc" },
   });
 
