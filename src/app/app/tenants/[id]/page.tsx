@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader, Status } from "@/components/ui";
+import { resetManagedAccountPinAction } from "@/server/auth/operator-pin-actions";
 import { requireSession } from "@/server/auth/session";
 import { hasDatabaseConfiguration } from "@/server/db";
 import { cancelTenantAttachmentRequest, requestTenantAttachment, updateTenantProfile } from "@/server/rentflow/tenant-profile-actions";
@@ -8,8 +9,9 @@ import { getTenantManagementDetail } from "@/server/rentflow/tenant-read-model";
 
 const date = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
 
-export default async function TenantDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function TenantDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ pinReset?: string; error?: string }> }) {
   const { id } = await params;
+  const query = await searchParams;
   const session = await requireSession(["PLATFORM_ADMIN", "LANDLORD", "PROPERTY_ADMIN"]);
 
   if (!hasDatabaseConfiguration()) {
@@ -34,10 +36,21 @@ export default async function TenantDetail({ params }: { params: Promise<{ id: s
         action={<Link href="/app/tenants" className="rf-button rf-button-light">Back</Link>}
       />
 
+      {query.pinReset === "1" && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">The tenant account PIN was invalidated. They must verify their phone and choose a new PIN before using PIN sign-in again.</div>}
+      {query.error === "pin_reset_denied" && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">This account cannot be reset from the current organization context.</div>}
+
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <section className="rf-card p-6">
-          <h2 className="font-semibold">Tenant profile</h2>
-          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">Sensitive identity data is minimized. RentFlow stores only the final four national-ID digits in this profile.</p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div><h2 className="font-semibold">Tenant profile</h2><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Sensitive identity data is minimized. RentFlow stores only the final four national-ID digits in this profile.</p></div>
+            {tenant.userId && (
+              <form action={resetManagedAccountPinAction}>
+                <input type="hidden" name="targetUserId" value={tenant.userId} />
+                <input type="hidden" name="returnPath" value={`/app/tenants/${tenant.id}`} />
+                <button type="submit" className="rf-button rf-button-light">Reset account PIN</button>
+              </form>
+            )}
+          </div>
           <form action={updateTenantProfile} className="mt-5 space-y-5">
             <input type="hidden" name="tenantId" value={tenant.id} />
             <div className="grid gap-5 sm:grid-cols-2">
