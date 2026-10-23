@@ -1,3 +1,4 @@
+import type { SessionPayload } from "@/server/auth/session";
 import { hasDatabaseConfiguration, db } from "@/server/db";
 import {
   leases as demoLeases,
@@ -9,11 +10,49 @@ import {
 const money = new Intl.NumberFormat("en-TZ", { maximumFractionDigits: 0 });
 const date = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 const label = (value: string) => value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+const protectedStates = ["AWAITING_PAYMENT", "ACTIVE", "RENEWAL_WINDOW", "GRACE"] as const;
 
 export type CardRow = { id: string; title: string; subtitle: string; status: string; meta?: string };
 export type TableRow = { id: string; primary: string; secondary: string; tertiary: string; quaternary: string };
 
-export async function getPropertiesSection(organizationId: string | null) {
+type ReadScope = {
+  organizationId: string | null;
+  propertyIds?: string[];
+  tenantId?: string;
+};
+
+async function resolveScope(session: SessionPayload): Promise<ReadScope> {
+  if (!hasDatabaseConfiguration()) return { organizationId: session.organizationId };
+
+  if (session.role === "SUPERVISOR") {
+    const assignments = await db.supervisorAssignment.findMany({
+      where: { userId: session.userId, active: true },
+      select: { propertyId: true },
+    });
+    return { organizationId: session.organizationId, propertyIds: assignments.map((item) => item.propertyId) };
+  }
+
+  if (session.role === "TENANT") {
+    const tenant = await db.tenant.findFirst({
+      where: { userId: session.userId, ...(session.organizationId ? { organizationId: session.organizationId } : {}) },
+      include: {
+        leases: {
+          where: { status: { in: [...protectedStates] } },
+          select: { unit: { select: { propertyId: true } } },
+        },
+      },
+    });
+    return {
+      organizationId: session.organizationId,
+      tenantId: tenant?.id,
+      propertyIds: tenant ? [...new Set(tenant.leases.map((lease) => lease.unit.propertyId))] : [],
+    };
+  }
+
+  return { organizationId: session.organizationId };
+}
+
+export async function getPropertiesSection(session: SessionPayload) {
   if (!hasDatabaseConfiguration()) {
     return demoProperties.map((item) => ({
       id: item.name,
@@ -24,8 +63,13 @@ export async function getPropertiesSection(organizationId: string | null) {
     } satisfies TableRow));
   }
 
+  const scope = await resolveScope(session);
   const rows = await db.property.findMany({
-    where: organizationId ? { organizationId, active: true } : { active: true },
+    where: {
+      active: true,
+      ...(scope.organizationId ? { organizationId: scope.organizationId } : {}),
+      ...(scope.propertyIds ? { id: { in: scope.propertyIds } } : {}),
+    },
     include: {
       units: { include: { leases: true, listing: true } },
       supervisorAssignments: { where: { active: true }, include: { user: true }, take: 1 },
@@ -42,7 +86,7 @@ export async function getPropertiesSection(organizationId: string | null) {
   }));
 }
 
-export async function getUnitsSection(organizationId: string | null): Promise<CardRow[]> {
+export async function getUnitsSection(session: SessionPayload): Promise<CardRow[]> {
   if (!hasDatabaseConfiguration()) {
     return [
       { id: "A2", title: "A2", subtitle: "Ocean View Apartments", status: "Occupied", meta: "Apartment" },
@@ -51,15 +95,22 @@ export async function getUnitsSection(organizationId: string | null): Promise<Ca
     ];
   }
 
+  const scope = await resolveScope(session);
   const rows = await db.unit.findMany({
-    where: organizationId ? { property: { organizationId } } : undefined,
+    where: {
+      property: {
+        ...(scope.organizationId ? { organizationId: scope.organizationId } : {}),
+        ...(scope.propertyIds ? { id: { in: scope.propertyIds } } : {}),
+      },
+      ...(scope.tenantId ? { leases: { some: { tenantId: scope.tenantId, status: { in: [...protectedStates] } } } } : {}),
+    },
     include: { property: true, leases: { orderBy: { endDate: "desc" }, take: 1 } },
     orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }],
   });
 
   return rows.map((unit) => {
     const current = unit.leases[0];
-    const protectedOccupancy = current && ["AWAITING_PAYMENT", "ACTIVE", "RENEWAL_WINDOW", "GRACE"].includes(current.status);
+    const protectedOccupancy = current && protectedStates.includes(current.status as (typeof protectedStates)[number]);
     return {
       id: unit.id,
       title: unit.unitNumber,
@@ -70,7 +121,7 @@ export async function getUnitsSection(organizationId: string | null): Promise<Ca
   });
 }
 
-export async function getTenantsSection(organizationId: string | null): Promise<CardRow[]> {
+export async function getTenantsSection(session: SessionPayload): Promise<CardRow[]> {
   if (!hasDatabaseConfiguration()) {
     return [
       { id: "rehema", title: "Rehema K.", subtitle: "Ocean View · A2", status: "Active" },
@@ -79,9 +130,24 @@ export async function getTenantsSection(organizationId: string | null): Promise<
     ];
   }
 
+  const scope = await resolveScope(session);
   const rows = await db.tenant.findMany({
-    where: organizationId ? { organizationId } : undefined,
-    include: { leases: { include: { unit: { include: { property: true } } }, orderBy: { endDate: "desc" }, take: 1 } },
+    where: scope.tenantId
+      ? { id: scope.tenantId }
+      : {
+          ...(scope.organizationId ? { organizationId: scope.organizationId } : {}),
+          ...(scope.propertyIds
+            ? { leases: { some: { unit: { propertyId: { in: scope.propertyIds } }, status: { in: [...protectedStates] } } } }
+            : {}),
+        },
+    include: {
+      leases: {
+        where: scope.propertyIds ? { unit: { propertyId: { in: scope.propertyIds } } } : undefined,
+        include: { unit: { include: { property: true } } },
+        orderBy: { endDate: "desc" },
+        take: 1,
+      },
+    },
     orderBy: { name: "asc" },
   });
 
@@ -97,11 +163,16 @@ export async function getTenantsSection(organizationId: string | null): Promise<
   });
 }
 
-export async function getLeasesSection(organizationId: string | null) {
+export async function getLeasesSection(session: SessionPayload) {
   if (!hasDatabaseConfiguration()) return demoLeases.map((item, index) => ({ id: String(index), ...item }));
+  const scope = await resolveScope(session);
 
   const rows = await db.lease.findMany({
-    where: organizationId ? { unit: { property: { organizationId } } } : undefined,
+    where: {
+      ...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
+      ...(!scope.tenantId && scope.propertyIds ? { unit: { propertyId: { in: scope.propertyIds } } } : {}),
+      ...(!scope.tenantId && !scope.propertyIds && scope.organizationId ? { unit: { property: { organizationId: scope.organizationId } } } : {}),
+    },
     include: { tenant: true, unit: { include: { property: true } } },
     orderBy: { endDate: "asc" },
   });
@@ -116,11 +187,20 @@ export async function getLeasesSection(organizationId: string | null) {
   }));
 }
 
-export async function getPaymentsSection(organizationId: string | null) {
+export async function getPaymentsSection(session: SessionPayload) {
   if (!hasDatabaseConfiguration()) return demoPayments.map((item) => ({ id: item.reference, ...item }));
+  const scope = await resolveScope(session);
 
   const rows = await db.paymentObligation.findMany({
-    where: organizationId ? { lease: { unit: { property: { organizationId } } } } : undefined,
+    where: {
+      lease: scope.tenantId
+        ? { tenantId: scope.tenantId }
+        : scope.propertyIds
+          ? { unit: { propertyId: { in: scope.propertyIds } } }
+          : scope.organizationId
+            ? { unit: { property: { organizationId: scope.organizationId } } }
+            : {},
+    },
     include: { lease: { include: { tenant: true } }, transactions: { orderBy: { createdAt: "desc" }, take: 1 } },
     orderBy: { createdAt: "desc" },
   });
@@ -135,13 +215,18 @@ export async function getPaymentsSection(organizationId: string | null) {
   }));
 }
 
-export async function getMaintenanceSection(organizationId: string | null): Promise<CardRow[]> {
+export async function getMaintenanceSection(session: SessionPayload): Promise<CardRow[]> {
   if (!hasDatabaseConfiguration()) {
     return demoMaintenance.map((item) => ({ id: item.title, title: item.title, subtitle: `${item.property} · ${item.tenant}`, status: item.status, meta: item.priority }));
   }
 
+  const scope = await resolveScope(session);
   const rows = await db.maintenanceRequest.findMany({
-    where: organizationId ? { property: { organizationId } } : undefined,
+    where: {
+      ...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
+      ...(!scope.tenantId && scope.propertyIds ? { propertyId: { in: scope.propertyIds } } : {}),
+      ...(!scope.tenantId && !scope.propertyIds && scope.organizationId ? { property: { organizationId: scope.organizationId } } : {}),
+    },
     include: { property: true, tenant: true },
     orderBy: { updatedAt: "desc" },
   });
@@ -155,7 +240,7 @@ export async function getMaintenanceSection(organizationId: string | null): Prom
   }));
 }
 
-export async function getSupervisorsSection(organizationId: string | null): Promise<CardRow[]> {
+export async function getSupervisorsSection(session: SessionPayload): Promise<CardRow[]> {
   if (!hasDatabaseConfiguration()) {
     return [
       { id: "asha", title: "Asha M.", subtitle: "Ocean View Apartments", status: "Active" },
@@ -163,8 +248,12 @@ export async function getSupervisorsSection(organizationId: string | null): Prom
     ];
   }
 
+  const scope = await resolveScope(session);
   const rows = await db.supervisorAssignment.findMany({
-    where: organizationId ? { property: { organizationId } } : undefined,
+    where: {
+      ...(scope.organizationId ? { property: { organizationId: scope.organizationId } } : {}),
+      ...(scope.propertyIds ? { propertyId: { in: scope.propertyIds } } : {}),
+    },
     include: { user: true, property: true },
     orderBy: { startsAt: "desc" },
   });
@@ -178,7 +267,7 @@ export async function getSupervisorsSection(organizationId: string | null): Prom
   }));
 }
 
-export async function getNoticesSection(organizationId: string | null): Promise<CardRow[]> {
+export async function getNoticesSection(session: SessionPayload): Promise<CardRow[]> {
   if (!hasDatabaseConfiguration()) {
     return [
       { id: "water", title: "Water maintenance notice", subtitle: "Ocean View Apartments", status: "Published", meta: "Info" },
@@ -186,21 +275,27 @@ export async function getNoticesSection(organizationId: string | null): Promise<
     ];
   }
 
+  const scope = await resolveScope(session);
   const rows = await db.safetyNotice.findMany({
-    where: organizationId ? { organizationId } : undefined,
+    where: {
+      ...(scope.organizationId ? { organizationId: scope.organizationId } : {}),
+      ...(scope.propertyIds
+        ? { OR: [{ propertyId: null }, { propertyId: { in: scope.propertyIds } }] }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
 
   return rows.map((notice) => ({
     id: notice.id,
     title: notice.title,
-    subtitle: notice.propertyId ? `Property notice · ${notice.propertyId.slice(0, 8)}` : "Organization-wide notice",
+    subtitle: notice.propertyId ? "Property notice" : "Organization-wide notice",
     status: notice.publishedAt ? "Published" : "Draft",
     meta: label(notice.severity),
   }));
 }
 
-export async function getReportsSection(organizationId: string | null) {
+export async function getReportsSection(session: SessionPayload) {
   if (!hasDatabaseConfiguration()) {
     return [
       ["Occupancy", "80%"], ["Collection", "91%"], ["Open maintenance", "5"],
@@ -208,16 +303,24 @@ export async function getReportsSection(organizationId: string | null) {
     ] as const;
   }
 
+  const scope = await resolveScope(session);
+  const propertyWhere = {
+    ...(scope.organizationId ? { organizationId: scope.organizationId } : {}),
+    ...(scope.propertyIds ? { id: { in: scope.propertyIds } } : {}),
+  };
+  const unitWhere = { property: propertyWhere };
+  const leaseWhere = { unit: unitWhere };
+
   const [units, occupied, obligations, paid, maintenance, renewal, grace, listings, auditCount] = await Promise.all([
-    db.unit.count({ where: organizationId ? { property: { organizationId } } : undefined }),
-    db.unit.count({ where: { ...(organizationId ? { property: { organizationId } } : {}), leases: { some: { status: { in: ["ACTIVE", "RENEWAL_WINDOW", "GRACE"] } } } } }),
-    db.paymentObligation.aggregate({ _sum: { amount: true }, where: organizationId ? { lease: { unit: { property: { organizationId } } } } : undefined }),
-    db.paymentObligation.aggregate({ _sum: { amount: true }, where: { ...(organizationId ? { lease: { unit: { property: { organizationId } } } } : {}), status: "PAID" } }),
-    db.maintenanceRequest.count({ where: { ...(organizationId ? { property: { organizationId } } : {}), status: { notIn: ["RESOLVED", "CLOSED"] } } }),
-    db.lease.count({ where: { ...(organizationId ? { unit: { property: { organizationId } } } : {}), status: "RENEWAL_WINDOW" } }),
-    db.lease.count({ where: { ...(organizationId ? { unit: { property: { organizationId } } } : {}), status: "GRACE" } }),
-    db.propertyListing.count({ where: { ...(organizationId ? { unit: { property: { organizationId } } } : {}), status: "PUBLISHED" } }),
-    db.auditLog.count({ where: organizationId ? { organizationId } : undefined }),
+    db.unit.count({ where: unitWhere }),
+    db.unit.count({ where: { ...unitWhere, leases: { some: { status: { in: ["ACTIVE", "RENEWAL_WINDOW", "GRACE"] } } } } }),
+    db.paymentObligation.aggregate({ _sum: { amount: true }, where: { lease: leaseWhere } }),
+    db.paymentObligation.aggregate({ _sum: { amount: true }, where: { lease: leaseWhere, status: "PAID" } }),
+    db.maintenanceRequest.count({ where: { property: propertyWhere, status: { notIn: ["RESOLVED", "CLOSED"] } } }),
+    db.lease.count({ where: { ...leaseWhere, status: "RENEWAL_WINDOW" } }),
+    db.lease.count({ where: { ...leaseWhere, status: "GRACE" } }),
+    db.propertyListing.count({ where: { unit: unitWhere, status: "PUBLISHED" } }),
+    db.auditLog.count({ where: scope.organizationId ? { organizationId: scope.organizationId } : undefined }),
   ]);
 
   const totalAmount = Number(obligations._sum.amount ?? 0);
