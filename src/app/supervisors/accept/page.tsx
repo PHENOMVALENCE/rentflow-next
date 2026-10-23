@@ -1,6 +1,7 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { acceptSupervisorInvite, requestSupervisorInviteOtp } from "@/server/auth/supervisor-invite";
-import { decodeSupervisorInviteToken } from "@/server/rentflow/supervisor-actions";
+import { decodeSupervisorInviteToken } from "@/server/auth/supervisor-invite-token";
 import { maskTanzaniaPhone } from "@/server/auth/phone";
 
 export default async function AcceptSupervisorPage({
@@ -71,6 +72,6 @@ export default async function AcceptSupervisorPage({
   );
 }
 
-function ErrorMessage({ children }: { children: React.ReactNode }) {
+function ErrorMessage({ children }: { children: ReactNode }) {
   return <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{children}</div>;
 }
