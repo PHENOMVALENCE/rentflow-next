@@ -47,10 +47,15 @@ export default async function Section({ params }: { params: Promise<{ section: s
   const session = await requireSession();
   if (!canAccessSection(session.role, section)) notFound();
   const createLabel = canCreateSection(session.role, section) ? singular[section] : undefined;
+  const headerAction = section === "supervisors"
+    ? <Link href="/app/supervisors/manage" className="rf-button rf-button-dark">Manage supervisors</Link>
+    : createLabel
+      ? <Link href={`/app/${section}/new`} className="rf-button rf-button-dark">New {createLabel}</Link>
+      : undefined;
 
   return (
     <>
-      <PageHeader eyebrow="Operations" title={titles[section]} description={descriptions[section]} action={createLabel ? <Link href={`/app/${section}/new`} className="rf-button rf-button-dark">New {createLabel}</Link> : undefined} />
+      <PageHeader eyebrow="Operations" title={titles[section]} description={descriptions[section]} action={headerAction} />
       {await renderSection(section, session)}
     </>
   );
@@ -70,11 +75,11 @@ async function renderSection(section: SectionName, session: SessionPayload) {
     return (
       <div className="space-y-6">
         <section>
-          <div className="mb-3 flex items-end justify-between gap-3"><div><h2 className="font-semibold">Safety notices</h2><p className="mt-1 text-xs text-[var(--muted)]">Organization and property-scoped operational communication</p></div></div>
+          <div className="mb-3"><h2 className="font-semibold">Safety notices</h2><p className="mt-1 text-xs text-[var(--muted)]">Organization and property-scoped operational communication</p></div>
           <Cards rows={notices} />
         </section>
         <section>
-          <div className="mb-3 flex items-end justify-between gap-3"><div><h2 className="font-semibold">Communities</h2><p className="mt-1 text-xs text-[var(--muted)]">Membership and property eligibility are checked server-side.</p></div></div>
+          <div className="mb-3"><h2 className="font-semibold">Communities</h2><p className="mt-1 text-xs text-[var(--muted)]">Membership and property eligibility are checked server-side.</p></div>
           {communities.length === 0 ? <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No communities are available in your scope.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{communities.map((community) => <Link key={community.id} href={`/app/community/${community.id}`} className="rf-card p-5"><div className="flex items-center justify-between gap-3"><Status>{community.joined ? "Joined" : "Available"}</Status><span className="text-xs text-[var(--muted)]">{community.members} members</span></div><h3 className="mt-4 font-semibold">{community.name}</h3><p className="mt-1 text-sm text-[var(--muted)]">{community.messages} messages · {community.propertyId ? "Property scoped" : "Organization wide"}</p><p className="mt-4 text-xs font-medium">Open community →</p></Link>)}</div>}
         </section>
       </div>
