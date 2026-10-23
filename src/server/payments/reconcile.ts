@@ -52,10 +52,6 @@ export async function reconcileProviderEvent(event: ProviderEvent) {
       receivedAmount: event.receivedAmount,
       currency: event.currency || obligation.currency,
       status,
-      rawPayload: {
-        providerStatus: event.providerStatus,
-        controlNumber: event.controlNumber,
-      },
       failureReason: isCompleted && exact.effect === "EXCEPTION" ? "AMOUNT_OR_CURRENCY_MISMATCH" : null,
     } as const;
 
