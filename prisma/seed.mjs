@@ -9,11 +9,19 @@ function required(name) {
   return value;
 }
 
-function hashPassword(password) {
-  if (password.length < 12) throw new Error("BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters.");
+function hashPin(pin) {
+  if (!/^\d{4}$/.test(pin)) throw new Error("BOOTSTRAP_ADMIN_PIN must contain exactly four digits.");
   const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(password, salt, 64).toString("hex");
+  const hash = scryptSync(pin, salt, 64).toString("hex");
   return `scrypt$${salt}$${hash}`;
+}
+
+function normalizePhone(value) {
+  let phone = value.replace(/[^0-9+]/g, "").replace(/^\+/, "");
+  if (/^0\d{9}$/.test(phone)) phone = `255${phone.slice(1)}`;
+  if (/^\d{9}$/.test(phone)) phone = `255${phone}`;
+  if (!/^255\d{9}$/.test(phone)) throw new Error("BOOTSTRAP_ADMIN_PHONE must be a valid Tanzanian phone number.");
+  return phone;
 }
 
 async function main() {
@@ -21,7 +29,8 @@ async function main() {
   const organizationSlug = required("BOOTSTRAP_ORGANIZATION_SLUG").toLowerCase();
   const adminName = required("BOOTSTRAP_ADMIN_NAME");
   const adminEmail = required("BOOTSTRAP_ADMIN_EMAIL").toLowerCase();
-  const adminPassword = required("BOOTSTRAP_ADMIN_PASSWORD");
+  const adminPhone = normalizePhone(required("BOOTSTRAP_ADMIN_PHONE"));
+  const adminPin = required("BOOTSTRAP_ADMIN_PIN");
 
   const organization = await db.organization.upsert({
     where: { slug: organizationSlug },
@@ -33,14 +42,15 @@ async function main() {
   const user = existing
     ? await db.user.update({
         where: { id: existing.id },
-        data: { name: adminName, role: "LANDLORD" },
+        data: { name: adminName, phone: adminPhone, role: "LANDLORD", passwordHash: hashPin(adminPin) },
       })
     : await db.user.create({
         data: {
           name: adminName,
           email: adminEmail,
+          phone: adminPhone,
           role: "LANDLORD",
-          passwordHash: hashPassword(adminPassword),
+          passwordHash: hashPin(adminPin),
           preferredLanguage: "sw",
         },
       });
@@ -64,7 +74,7 @@ async function main() {
       action: "system.bootstrap_seed",
       resourceType: "Organization",
       resourceId: organization.id,
-      metadata: { adminEmail },
+      metadata: { adminEmail, adminPhone: `${adminPhone.slice(0, 5)}****${adminPhone.slice(-3)}` },
     },
   });
 
