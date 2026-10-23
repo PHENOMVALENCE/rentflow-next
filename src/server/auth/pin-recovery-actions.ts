@@ -15,6 +15,8 @@ const verifySchema = z.object({
   confirmPin: z.string().regex(/^\d{4}$/),
 });
 
+type BriqVerificationResult = Awaited<ReturnType<typeof callBriqOtp>>;
+
 function phoneRepresentations(phone: string) {
   return [phone, `+${phone}`, `0${phone.slice(3)}`];
 }
@@ -81,7 +83,7 @@ export async function verifyPinResetAction(formData: FormData) {
   const users = await db.user.findMany({ where: { phone: { in: phoneRepresentations(recovery.phone) } }, select: { id: true }, take: 2 });
   if (users.length !== 1) redirect("/forgot-pin/verify?error=invalid");
 
-  let result;
+  let result: BriqVerificationResult;
   try {
     result = await callBriqOtp("verify", recovery.phone, parsed.data.code);
   } catch (error) {
