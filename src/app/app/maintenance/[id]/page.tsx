@@ -10,21 +10,22 @@ const date = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: 
 
 export default async function MaintenanceDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await requireSession(["PLATFORM_ADMIN", "LANDLORD", "PROPERTY_ADMIN", "SUPERVISOR"]);
+  const session = await requireSession(["PLATFORM_ADMIN", "LANDLORD", "PROPERTY_ADMIN", "SUPERVISOR", "TENANT"]);
 
   if (!hasDatabaseConfiguration()) {
     return (
       <>
-        <PageHeader eyebrow="Maintenance" title="Maintenance workflow" description="Workflow transitions require the production database." />
+        <PageHeader eyebrow="Maintenance" title="Maintenance workflow" description="Workflow details require the production database." />
         <div className="rf-card max-w-2xl p-6"><Link href="/app/maintenance" className="rf-button rf-button-light">Back to maintenance</Link></div>
       </>
     );
   }
 
-  const request = await getMaintenanceWorkflow(id, session.organizationId);
+  const request = await getMaintenanceWorkflow(id, session);
   if (!request) notFound();
 
-  const nextStates = maintenanceNextStates[request.status] ?? [];
+  const canTransition = session.role !== "TENANT";
+  const nextStates = canTransition ? maintenanceNextStates[request.status] ?? [] : [];
 
   return (
     <>
@@ -40,7 +41,7 @@ export default async function MaintenanceDetail({ params }: { params: Promise<{ 
           <div className="flex items-center justify-between gap-3"><Status>{request.status.replaceAll("_", " ")}</Status><span className="text-xs text-[var(--muted)]">{request.priority}</span></div>
           <p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-[var(--muted-strong)]">{request.description}</p>
 
-          {nextStates.length > 0 && (
+          {canTransition && nextStates.length > 0 && (
             <div className="mt-6 border-t border-[var(--border)] pt-5">
               <h2 className="font-semibold">Advance workflow</h2>
               <p className="mt-1 text-xs text-[var(--muted)]">Only valid state transitions are offered.</p>
@@ -56,6 +57,8 @@ export default async function MaintenanceDetail({ params }: { params: Promise<{ 
               </div>
             </div>
           )}
+
+          {!canTransition && <p className="mt-6 border-t border-[var(--border)] pt-5 text-xs leading-5 text-[var(--muted)]">You can follow the status history here. Workflow state changes are handled by the assigned operational team.</p>}
         </section>
 
         <section className="rf-card overflow-hidden">
