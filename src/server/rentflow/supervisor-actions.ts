@@ -3,15 +3,49 @@
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { normalizeTanzaniaPhone } from "@/server/auth/phone";
 import { requireSession } from "@/server/auth/session";
 import { db } from "@/server/db";
+
+export type SupervisorInviteTokenPayload = {
+  version: 1;
+  nonce: string;
+  name: string;
+  phone: string;
+  propertyId: string;
+};
+
+export function decodeSupervisorInviteToken(token: string): SupervisorInviteTokenPayload | null {
+  try {
+    const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8")) as Partial<SupervisorInviteTokenPayload>;
+    if (payload.version !== 1 || !payload.nonce || !payload.name || !payload.phone || !payload.propertyId) return null;
+    if (!/^255\d{9}$/.test(payload.phone)) return null;
+    return payload as SupervisorInviteTokenPayload;
+  } catch {
+    return null;
+  }
+}
 
 export async function inviteSupervisor(formData: FormData) {
   const session = await requireSession(["PLATFORM_ADMIN", "LANDLORD", "PROPERTY_ADMIN"]);
   if (!session.organizationId) throw new Error("An organization is required to invite supervisors.");
 
+  const name = z.string().trim().min(2).max(160).parse(formData.get("name"));
   const email = z.string().trim().email().parse(formData.get("email")).toLowerCase();
-  const rawToken = randomBytes(32).toString("base64url");
+  const phone = normalizeTanzaniaPhone(z.string().trim().min(9).max(20).parse(formData.get("phone")));
+  const propertyId = z.string().cuid().parse(formData.get("propertyId"));
+
+  const property = await db.property.findFirst({ where: { id: propertyId, organizationId: session.organizationId, active: true }, select: { id: true, name: true } });
+  if (!property) throw new Error("Select an active property in this organization.");
+
+  const payload: SupervisorInviteTokenPayload = {
+    version: 1,
+    nonce: randomBytes(24).toString("base64url"),
+    name,
+    phone,
+    propertyId,
+  };
+  const rawToken = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const tokenHash = createHash("sha256").update(rawToken).digest("hex");
   const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
@@ -26,12 +60,19 @@ export async function inviteSupervisor(formData: FormData) {
       action: "supervisor.invited",
       resourceType: "SupervisorInvite",
       resourceId: invite.id,
-      metadata: { email, expiresAt: expiresAt.toISOString() },
+      metadata: {
+        email,
+        phone: `${phone.slice(0, 5)}****${phone.slice(-3)}`,
+        propertyId,
+        propertyName: property.name,
+        expiresAt: expiresAt.toISOString(),
+      },
     },
   });
 
-  // The raw token is intentionally not persisted. A messaging adapter should deliver it immediately.
+  // The raw token carries onboarding scope and is intentionally never persisted.
   revalidatePath("/app/supervisors");
+  revalidatePath("/app/supervisors/manage");
   return { inviteId: invite.id, token: rawToken, expiresAt: expiresAt.toISOString() };
 }
 
@@ -66,6 +107,7 @@ export async function assignSupervisor(formData: FormData) {
   });
 
   revalidatePath("/app/supervisors");
+  revalidatePath("/app/supervisors/manage");
 }
 
 export async function unassignSupervisor(formData: FormData) {
@@ -90,4 +132,5 @@ export async function unassignSupervisor(formData: FormData) {
   });
 
   revalidatePath("/app/supervisors");
+  revalidatePath("/app/supervisors/manage");
 }
