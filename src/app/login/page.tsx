@@ -17,6 +17,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
           {query.reset === "1" && <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Your account PIN was reset successfully. Sign in with the new PIN.</div>}
           {query.error === "invalid" && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">Invalid phone number or PIN.</div>}
+          {query.error === "locked" && <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Too many unsuccessful PIN attempts. Use Forgot PIN to verify the account, or try again after the security window.</div>}
           {!databaseReady && <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Database authentication is not configured yet. The preview dashboard remains available in demo mode.</div>}
 
           <form action={loginAction} className="mt-6 space-y-5">
