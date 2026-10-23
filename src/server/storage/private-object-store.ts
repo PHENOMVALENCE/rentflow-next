@@ -1,3 +1,6 @@
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+
 export class StorageConfigurationError extends Error {
   constructor(message = "Private object storage is not configured.") {
     super(message);
@@ -17,6 +20,46 @@ export interface PrivateObjectStore {
   put(input: { key: string; bytes: Uint8Array; mimeType: string }): Promise<StoredObject>;
   delete(key: string): Promise<void>;
   createDownloadUrl(key: string, expiresInSeconds: number): Promise<string>;
+}
+
+function safeRelativeKey(key: string) {
+  const normalized = path.posix.normalize(key.replaceAll("\\", "/"));
+  if (!normalized || normalized === "." || normalized === ".." || normalized.startsWith("../") || path.isAbsolute(normalized)) {
+    throw new StorageConfigurationError("Invalid private storage key.");
+  }
+  return normalized;
+}
+
+class LocalPrivateObjectStore implements PrivateObjectStore {
+  readonly provider = "LOCAL";
+
+  constructor(private readonly root: string) {}
+
+  private resolve(key: string) {
+    const relative = safeRelativeKey(key);
+    const root = path.resolve(this.root);
+    const absolute = path.resolve(root, relative);
+    if (!absolute.startsWith(`${root}${path.sep}`)) throw new StorageConfigurationError("Storage key escapes configured root.");
+    return absolute;
+  }
+
+  async put(input: { key: string; bytes: Uint8Array; mimeType: string }): Promise<StoredObject> {
+    const absolute = this.resolve(input.key);
+    await mkdir(path.dirname(absolute), { recursive: true });
+    await writeFile(absolute, input.bytes);
+    return { key: input.key, sizeBytes: input.bytes.byteLength, mimeType: input.mimeType };
+  }
+
+  async delete(key: string): Promise<void> {
+    await rm(this.resolve(key), { force: true });
+  }
+
+  async createDownloadUrl(key: string): Promise<string> {
+    // Local storage is exposed only through RentFlow's authorized route, never as a raw file URL.
+    const bytes = await readFile(this.resolve(key));
+    if (!bytes.byteLength) throw new StorageConfigurationError("Stored object is empty or unavailable.");
+    throw new StorageConfigurationError("Local private storage does not issue external download URLs.");
+  }
 }
 
 class UnconfiguredPrivateObjectStore implements PrivateObjectStore {
@@ -40,11 +83,22 @@ class UnconfiguredPrivateObjectStore implements PrivateObjectStore {
 }
 
 export function getPrivateObjectStore(): PrivateObjectStore {
-  // Intentionally fail closed until a concrete private provider is connected.
+  const driver = process.env.PRIVATE_STORAGE_DRIVER?.trim().toLowerCase();
+  if (driver === "local") {
+    if (process.env.NODE_ENV === "production") {
+      throw new StorageConfigurationError("Local private storage is disabled in production.");
+    }
+    const root = process.env.PRIVATE_STORAGE_LOCAL_ROOT?.trim();
+    if (!root) throw new StorageConfigurationError("PRIVATE_STORAGE_LOCAL_ROOT is required for local private storage.");
+    return new LocalPrivateObjectStore(root);
+  }
+
+  // Intentionally fail closed until a production private provider is connected.
   // Do not derive public URLs from storage keys.
   return new UnconfiguredPrivateObjectStore();
 }
 
 export function hasPrivateObjectStorage() {
-  return false;
+  const driver = process.env.PRIVATE_STORAGE_DRIVER?.trim().toLowerCase();
+  return driver === "local" && process.env.NODE_ENV !== "production" && Boolean(process.env.PRIVATE_STORAGE_LOCAL_ROOT?.trim());
 }
