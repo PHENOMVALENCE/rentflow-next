@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireSession } from "@/server/auth/session";
 import { db } from "@/server/db";
@@ -11,7 +12,7 @@ const paymentSchema = z.object({
   phone: z.string().trim().min(9).max(30),
 });
 
-export async function initiateLeasePayment(formData: FormData) {
+export async function initiateLeasePayment(formData: FormData): Promise<void> {
   const session = await requireSession(["TENANT", "LANDLORD", "PROPERTY_ADMIN", "PLATFORM_ADMIN"]);
   const input = paymentSchema.parse({
     obligationId: formData.get("obligationId"),
@@ -97,5 +98,5 @@ export async function initiateLeasePayment(formData: FormData) {
 
   revalidatePath("/app/payments");
   revalidatePath("/app/leases");
-  return { status: "PENDING" as const, providerReference: initiation.providerReference };
+  redirect(`/app/payments/${obligation.id}?initiated=1`);
 }
