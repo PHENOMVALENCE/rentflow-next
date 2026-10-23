@@ -8,7 +8,7 @@ import { callBriqOtp, OtpProviderError } from "@/server/integrations/briq-otp";
 import { hashPin } from "./password";
 import { normalizeTanzaniaPhone } from "./phone";
 import { createSession } from "./session";
-import { decodeSupervisorInviteToken } from "@/server/rentflow/supervisor-actions";
+import { decodeSupervisorInviteToken } from "./supervisor-invite-token";
 
 const tokenSchema = z.string().min(20);
 const acceptSchema = z.object({
@@ -66,7 +66,7 @@ export async function acceptSupervisorInvite(formData: FormData): Promise<void> 
   if (!resolved) redirect("/supervisors/accept?error=invalid");
   const { invite, payload } = resolved;
 
-  let verification;
+  let verification: Awaited<ReturnType<typeof callBriqOtp>>;
   try {
     verification = await callBriqOtp("verify", payload.phone, input.data.code);
   } catch (error) {
