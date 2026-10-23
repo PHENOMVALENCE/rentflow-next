@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { hashPin, verifyPin } from "./password";
-import { requireSession } from "./session";
+import { createSession, requireSession } from "./session";
 
 const changePinSchema = z.object({
   currentPin: z.string().regex(/^\d{4}$/),
@@ -50,5 +50,6 @@ export async function changeAccountPinAction(formData: FormData) {
     }),
   ]);
 
+  await createSession({ userId: session.userId, organizationId: session.organizationId, role: session.role });
   redirect("/app/account?changed=1");
 }
