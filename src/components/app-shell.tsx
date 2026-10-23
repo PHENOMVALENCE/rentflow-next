@@ -45,6 +45,7 @@ export function AppShell({
           ))}
         </nav>
         <div className="mt-auto space-y-3 text-xs text-[var(--muted)]">
+          <Link href="/app/account" className="block text-[var(--muted-strong)] hover:text-black">Account & security</Link>
           <p>RentFlow Next · {demoMode ? "Preview" : "Production"}</p>
           {!demoMode && <form action={logoutAction}><button className="text-left text-[var(--muted-strong)] hover:text-black">Sign out</button></form>}
         </div>
@@ -55,7 +56,7 @@ export function AppShell({
           <div><p className="text-xs text-[var(--muted)]">Property operations</p><p className="text-sm font-medium">{workspaceName}</p></div>
           <div className="flex items-center gap-3">
             <span className={`rf-badge ${demoMode ? "" : "rf-badge-success"}`}>{demoMode ? "Demo data" : "System healthy"}</span>
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-black text-sm text-white" title={userName}>{initials(userName)}</div>
+            <Link href="/app/account" className="grid h-9 w-9 place-items-center rounded-full bg-black text-sm text-white" title={`${userName} · Account & security`}>{initials(userName)}</Link>
           </div>
         </header>
         <main className="p-5 lg:p-8">{children}</main>
