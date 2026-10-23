@@ -8,8 +8,20 @@ export const sectionPermissions: Record<Role, readonly string[]> = {
   TENANT: ["leases", "payments", "maintenance", "notices"],
 };
 
+const createPermissions: Record<Role, readonly string[]> = {
+  PLATFORM_ADMIN: ["properties", "units", "listings", "tenants", "leases", "maintenance", "notices"],
+  LANDLORD: ["properties", "units", "listings", "tenants", "leases", "maintenance", "notices"],
+  PROPERTY_ADMIN: ["properties", "units", "listings", "tenants", "leases", "maintenance", "notices"],
+  SUPERVISOR: ["maintenance", "notices"],
+  TENANT: ["maintenance"],
+};
+
 export function canAccessSection(role: Role, section: string) {
   return sectionPermissions[role].includes(section);
+}
+
+export function canCreateSection(role: Role, section: string) {
+  return createPermissions[role].includes(section);
 }
 
 export function canManagePortfolio(role: Role) {
