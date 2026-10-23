@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
+import { canAccessSection } from "@/server/auth/authorization";
 import { publishListing, pauseListing } from "@/server/rentflow/listing-actions";
 import {
   getLeasesSection,
@@ -43,6 +44,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
   if (!allowed.includes(rawSection as SectionName)) notFound();
   const section = rawSection as SectionName;
   const session = await requireSession();
+  if (!canAccessSection(session.role, section)) notFound();
 
   return (
     <>
