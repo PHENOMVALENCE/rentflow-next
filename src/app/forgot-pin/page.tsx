@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { requestPinResetAction } from "@/server/auth/pin-recovery-actions";
 
 export default async function ForgotPinPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -29,7 +30,7 @@ export default async function ForgotPinPage({ searchParams }: { searchParams: Pr
   );
 }
 
-function Message({ children, tone }: { children: React.ReactNode; tone: "error" | "warning" }) {
+function Message({ children, tone }: { children: ReactNode; tone: "error" | "warning" }) {
   const className = tone === "error" ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-900";
   return <div className={`mt-5 rounded-xl border p-3 text-sm ${className}`}>{children}</div>;
 }
