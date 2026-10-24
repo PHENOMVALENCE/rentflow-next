@@ -22,7 +22,7 @@ export async function submitPropertyInquiry(formData: FormData) {
   });
 
   if (!hasDatabaseConfiguration()) {
-    redirect(`/listings/${input.listingId}/inquire?unavailable=1`);
+    redirect(`/listings/${input.listingId}?enquiry=unavailable#enquire`);
   }
 
   const listing = await db.propertyListing.findUnique({ where: { id: input.listingId } });
@@ -49,5 +49,5 @@ export async function submitPropertyInquiry(formData: FormData) {
     },
   });
 
-  redirect(`/listings/${input.listingId}/inquire?submitted=1`);
+  redirect(`/listings/${input.listingId}?enquiry=sent#enquire`);
 }

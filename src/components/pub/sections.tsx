@@ -31,15 +31,15 @@ export function PublicFooter({ signedIn }: { signedIn: boolean }) {
           <nav aria-labelledby="footer-explore">
             <h2 id="footer-explore" className="pub-footer-title">Explore</h2>
             <ul className="pub-footer-links">
-              <li><a href="/#available-units">Browse spaces</a></li>
-              <li><a href="/#how-it-works">How it works</a></li>
+              <li><Link href="/#available-units">Browse spaces</Link></li>
+              <li><Link href="/#how-it-works">How it works</Link></li>
             </ul>
           </nav>
           <nav aria-labelledby="footer-landlords">
             <h2 id="footer-landlords" className="pub-footer-title">Property teams</h2>
             <ul className="pub-footer-links">
               <li><Link href="/register?role=ORGANIZATION_ADMIN">List your property</Link></li>
-              <li><a href="/#for-landlords">Why RentFlow</a></li>
+              <li><Link href="/#for-landlords">Why RentFlow</Link></li>
             </ul>
           </nav>
           <nav aria-labelledby="footer-account">
