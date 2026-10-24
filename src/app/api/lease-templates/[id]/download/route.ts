@@ -20,7 +20,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const store = getPrivateObjectStore();
     if (store.provider === "LOCAL") {
       const bytes = await store.get(template.storageKey);
-      return new Response(bytes, {
+      const body = new Uint8Array(bytes).buffer;
+      return new Response(body, {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(template.name)}`,
