@@ -207,3 +207,10 @@
     }
   }
 }
+
+/* Registration: the organization field only applies to landlords (Laravel shows it conditionally). */
+@layer components {
+  .pub-auth-form:has(input[name="role"][value="TENANT"]:checked) .rf-landlord-only {
+    display: none;
+  }
+}
