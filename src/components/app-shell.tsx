@@ -112,7 +112,7 @@ export function AppShell({ children, role, userName, workspaceName, demoMode, lo
     <div className="rf-app">
       <a href="#app-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow-lg">Skip to content</a>
       <div className="flex min-h-screen">
-        <aside className={`rf-sidebar rf-shell-sidebar sticky top-0 z-20 hidden h-screen shrink-0 flex-col overflow-hidden lg:flex${sidebarOpen ? "" : " rf-sidebar-collapsed"}`}>
+        <aside className={`rf-sidebar rf-shell-sidebar sticky top-0 z-20 hidden h-screen shrink-0 flex-col overflow-hidden lg:flex ${sidebarOpen ? "" : "rf-sidebar-collapsed"}`}>
           <div className="flex h-16 shrink-0 items-center gap-3 border-b border-[#e3e8ef] px-5">
             <BrandMark />
             <div className="rf-brand-copy min-w-0">
