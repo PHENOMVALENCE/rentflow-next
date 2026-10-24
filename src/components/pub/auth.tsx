@@ -1,16 +1,22 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PubIcon, type PubIconName } from "@/components/icons";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { getTranslator } from "@/i18n/server";
 import { Brand } from "./brand";
 
 /** Guest frame for sign-in and onboarding flows (Laravel `layouts/guest`). */
-export function AuthLayout({ children }: { children: ReactNode }) {
+export async function AuthLayout({ children }: { children: ReactNode }) {
+  const { t } = await getTranslator();
   return (
     <div className="pub-body pub-auth">
-      <a href="#auth-content" className="pub-skip-link">Skip to content</a>
+      <a href="#auth-content" className="pub-skip-link">{t("Skip to content")}</a>
       <header className="pub-container pub-auth-bar">
         <Brand />
-        <Link href="/" className="pub-btn pub-btn-ghost pub-btn-sm"><PubIcon name="arrow-left" /> Back to spaces</Link>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <Link href="/" className="pub-btn pub-btn-ghost pub-btn-sm"><PubIcon name="arrow-left" /> {t("Back to spaces")}</Link>
+        </div>
       </header>
       <main id="auth-content" tabIndex={-1} className="pub-auth-main">{children}</main>
     </div>
@@ -28,10 +34,10 @@ export function AuthAlert({ tone = "info", children }: { tone?: "info" | "succes
   );
 }
 
-export function AuthField({ id, label, hint, optional, children }: { id: string; label: string; hint?: string; optional?: boolean; children: ReactNode }) {
+export function AuthField({ id, label, hint, optional, children }: { id: string; label: string; hint?: string; optional?: boolean | string; children: ReactNode }) {
   return (
     <div className="pub-field">
-      <label htmlFor={id} className="pub-label">{label}{optional && <> <span className="pub-optional">(optional)</span></>}</label>
+      <label htmlFor={id} className="pub-label">{label}{optional && <> <span className="pub-optional">{optional === true ? "(optional)" : optional}</span></>}</label>
       {children}
       {hint && <p id={`${id}-hint`} className="pub-hint">{hint}</p>}
     </div>

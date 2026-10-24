@@ -6,6 +6,7 @@ import { PubIcon } from "@/components/icons";
 import type { Listing } from "@/lib/demo-data";
 import { groupedAmount, PROPERTY_TYPE_LABELS, UNIT_TYPE_LABELS } from "@/lib/listing-filters";
 import { PropertyCard, PropertyImage } from "./property-card";
+import { useI18n } from "@/i18n/client";
 
 /**
  * Results grid with the desktop quick-view drawer (Laravel `partials/quick-view`). On phones, with modifier
@@ -61,42 +62,43 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
 }
 
 function QuickView({ listing, onClose, closeRef }: { listing: Listing; onClose: () => void; closeRef: React.RefObject<HTMLButtonElement | null> }) {
+  const { t } = useI18n();
   const cover = listing.images?.[0];
   const facts = [
-    ["Property type", listing.propertyType ? PROPERTY_TYPE_LABELS[listing.propertyType] : listing.type],
-    ["Unit", listing.unit],
-    ...(listing.bedrooms > 0 ? [["Bedrooms", String(listing.bedrooms)]] : []),
+    [t("Property type"), listing.propertyType ? t(PROPERTY_TYPE_LABELS[listing.propertyType]) : listing.type],
+    [t("Unit"), listing.unit],
+    ...(listing.bedrooms > 0 ? [[t("Bedrooms"), String(listing.bedrooms)]] : []),
   ];
   return (
     <div className="pub-drawer-root">
       <div className="pub-drawer-backdrop" onClick={onClose} aria-hidden="true" />
       <aside className="pub-drawer" role="dialog" aria-modal="true" aria-labelledby="qv-title">
         <div className="pub-drawer-head">
-          <p id="qv-title" className="pub-h4">Space preview</p>
-          <button ref={closeRef} type="button" className="pub-icon-button" onClick={onClose} aria-label="Close preview"><PubIcon name="x" /></button>
+          <p id="qv-title" className="pub-h4">{t("Space preview")}</p>
+          <button ref={closeRef} type="button" className="pub-icon-button" onClick={onClose} aria-label={t("Close preview")}><PubIcon name="x" /></button>
         </div>
         <div className="pub-drawer-body">
           <div className="pub-drawer-media"><PropertyImage imageId={cover?.id} alt={cover?.altText ?? listing.title} kind={listing.unitType} eager /></div>
           <div className="pub-drawer-content">
             <div>
-              <p className="pub-card-type">{listing.unitType ? UNIT_TYPE_LABELS[listing.unitType] : listing.unit}</p>
+              <p className="pub-card-type">{listing.unitType ? t(UNIT_TYPE_LABELS[listing.unitType]) : listing.unit}</p>
               <h3 className="pub-h3 mt-1">{listing.title}</h3>
               {listing.location && <p className="pub-card-place"><PubIcon name="map-pin" /> {listing.location}</p>}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               {listing.monthly > 0 ? (
-                <p className="pub-price">TZS {groupedAmount(listing.monthly)} <small>/ month</small><span className="pub-price-label">Indicative rent</span></p>
+                <p className="pub-price">TZS {groupedAmount(listing.monthly)} <small>{t("/ month")}</small><span className="pub-price-label">{t("Indicative rent")}</span></p>
               ) : (
-                <p className="pub-price">Rent on enquiry</p>
+                <p className="pub-price">{t("Rent on enquiry")}</p>
               )}
-              <span className="pub-status"><span className="pub-badge-dot" aria-hidden="true" />Available now</span>
+              <span className="pub-status"><span className="pub-badge-dot" aria-hidden="true" />{t("Available now")}</span>
             </div>
             <dl className="pub-dl">
               {facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
             </dl>
             {listing.features.length > 0 && (
               <div>
-                <h4 className="pub-label">Features</h4>
+                <h4 className="pub-label">{t("Features")}</h4>
                 <ul className="pub-card-tags">{listing.features.map((feature) => <li key={feature} className="pub-card-tag">{feature}</li>)}</ul>
               </div>
             )}
@@ -104,8 +106,8 @@ function QuickView({ listing, onClose, closeRef }: { listing: Listing; onClose: 
           </div>
         </div>
         <div className="pub-drawer-foot">
-          <Link href={`/listings/${listing.id}#enquire`} className="pub-btn pub-btn-primary pub-btn-lg"><PubIcon name="message" /> Contact property team</Link>
-          <Link href={`/listings/${listing.id}`} className="pub-btn pub-btn-secondary pub-btn-lg">View full details <PubIcon name="arrow-right" className="pub-btn-arrow" /></Link>
+          <Link href={`/listings/${listing.id}#enquire`} className="pub-btn pub-btn-primary pub-btn-lg"><PubIcon name="message" /> {t("Contact property team")}</Link>
+          <Link href={`/listings/${listing.id}`} className="pub-btn pub-btn-secondary pub-btn-lg">{t("View full details")} <PubIcon name="arrow-right" className="pub-btn-arrow" /></Link>
         </div>
       </aside>
     </div>

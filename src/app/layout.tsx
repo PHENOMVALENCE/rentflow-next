@@ -6,6 +6,9 @@ import "@fontsource/ibm-plex-sans/latin-700.css";
 import "@fontsource/ibm-plex-mono/latin-400.css";
 import "@fontsource/ibm-plex-mono/latin-500.css";
 import "./globals.css";
+import { I18nProvider } from "@/i18n/client";
+import { clientPhrases } from "@/i18n/client-phrases";
+import { clientCatalog, getLocale } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: {
@@ -21,10 +24,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-canvas font-sans text-neutral-800 antialiased">{children}</body>
+    <html lang={locale}>
+      <body className="min-h-screen bg-canvas font-sans text-neutral-800 antialiased">
+        <I18nProvider locale={locale} catalog={clientCatalog(locale, clientPhrases())}>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

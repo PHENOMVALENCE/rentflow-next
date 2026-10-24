@@ -31,7 +31,7 @@ describe("tenant journey", () => {
     expect(leaseCountdown(new Date("2026-11-05T00:00:00Z"), now)).toMatchObject({ days: 12, urgency: "soon" });
     expect(leaseCountdown(new Date("2026-10-30T00:00:00Z"), now).urgency).toBe("urgent");
     expect(leaseCountdown(new Date("2026-10-24T00:00:00Z"), now).label).toBe("Ends today");
-    expect(leaseCountdown(new Date("2026-10-20T00:00:00Z"), now)).toMatchObject({ days: -4, urgency: "over" });
+    expect(leaseCountdown(new Date("2026-10-20T00:00:00Z"), now)).toMatchObject({ days: -4, urgency: "over", label: "Ended :count days ago", labelParams: { count: 4 } });
   });
 });
 

@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { PubIcon } from "@/components/icons";
+import { useI18n } from "@/i18n/client";
+import { plural } from "@/i18n/translate";
 import { listingQueryHref, PROPERTY_TYPE_LABELS, UNIT_TYPE_LABELS, type ListingQuery } from "@/lib/listing-filters";
 
 type Props = {
@@ -19,11 +21,12 @@ const quickTypes = [
   ["OFFICE", "Offices"],
 ] as const;
 
-const spaces = (n: number) => (n === 1 ? "1 space" : `${n} spaces`);
 
 /** Discovery hero with progressive filters (Laravel `livewire.public.partials.hero-search`). */
 export function HeroSearch({ query, regions, total, availableTotal, typeCounts }: Props) {
   const router = useRouter();
+  const { t } = useI18n();
+  const spaces = (n: number) => plural(t, n, "1 space", ":count spaces");
   const formRef = useRef<HTMLFormElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   const [sheet, setSheet] = useState(false);
@@ -78,9 +81,9 @@ export function HeroSearch({ query, regions, total, availableTotal, typeCounts }
       <div className="pub-container pub-hero-inner">
         <div className="pub-hero-copy">
           <h1 id="discovery-title" className="pub-hero-title">
-            <span className="pub-line"><span>Find a space</span></span> <span className="pub-line"><span>that feels right.</span></span>
+            <span className="pub-line"><span>{t("Find a space")}</span></span> <span className="pub-line"><span>{t("that feels right.")}</span></span>
           </h1>
-          <p className="pub-hero-lede pub-anim-rise">Discover apartments, shops and offices currently available across Tanzania, and enquire directly with the property team.</p>
+          <p className="pub-hero-lede pub-anim-rise">{t("Discover apartments, shops and offices currently available across Tanzania, and enquire directly with the property team.")}</p>
         </div>
 
         {/* Mood photography, not a listing: decorative, so empty alt text. */}
@@ -97,19 +100,19 @@ export function HeroSearch({ query, regions, total, availableTotal, typeCounts }
             <div className="pub-hero-chip">
               <span className="pub-hero-chip-icon"><PubIcon name="building" /></span>
               <span>
-                <small>Available now</small>
-                <strong>{availableTotal === 1 ? "1 space open for enquiry" : `${availableTotal} spaces open for enquiry`}</strong>
+                <small>{t("Available now")}</small>
+                <strong>{plural(t, availableTotal, "1 space open for enquiry", ":count spaces open for enquiry")}</strong>
               </span>
             </div>
           )}
         </div>
 
-        <form ref={formRef} method="get" action="/#available-units" className={`pub-search pub-anim-panel${enhanced ? " is-enhanced" : ""}`} aria-label="Search available spaces" onSubmit={submit} onKeyDown={(event) => event.key === "Escape" && setSheet(false)}>
+        <form ref={formRef} method="get" action="/#available-units" className={`pub-search pub-anim-panel${enhanced ? " is-enhanced" : ""}`} aria-label={t("Search available spaces")} onSubmit={submit} onKeyDown={(event) => event.key === "Escape" && setSheet(false)}>
           <div className="pub-search-grid">
             <div className="pub-search-segment">
-              <label htmlFor="region"><PubIcon name="map-pin" /> Region (Mkoa)</label>
+              <label htmlFor="region"><PubIcon name="map-pin" /> {t("Region (Mkoa)")}</label>
               <select key={`r-${query.region}`} id="region" name="region" defaultValue={query.region} onChange={(event) => update({ ...query, region: event.target.value })}>
-                <option value="">All regions</option>
+                <option value="">{t("All regions")}</option>
                 {regions.map((region) => <option key={region} value={region}>{region}</option>)}
               </select>
             </div>
@@ -118,41 +121,41 @@ export function HeroSearch({ query, regions, total, availableTotal, typeCounts }
               <div className="pub-sheet-head">
                 <div>
                   <div className="pub-sheet-grip" aria-hidden="true" />
-                  <h2 id="filters-title" className="pub-h4">Filters</h2>
+                  <h2 id="filters-title" className="pub-h4">{t("Filters")}</h2>
                 </div>
-                <button type="button" className="pub-icon-button" onClick={() => setSheet(false)} aria-label="Close filters"><PubIcon name="x" /></button>
+                <button type="button" className="pub-icon-button" onClick={() => setSheet(false)} aria-label={t("Close filters")}><PubIcon name="x" /></button>
               </div>
 
               <div className="pub-search-segment">
-                <label htmlFor="property_type"><PubIcon name="layers" /> Property type</label>
+                <label htmlFor="property_type"><PubIcon name="layers" /> {t("Property type")}</label>
                 <select key={`p-${query.property_type}`} id="property_type" name="property_type" defaultValue={query.property_type} onChange={(event) => !sheet && update({ ...query, property_type: event.target.value })}>
-                  <option value="">Any property type</option>
-                  {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  <option value="">{t("Any property type")}</option>
+                  {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}
                 </select>
               </div>
 
               <div className="pub-search-segment">
-                <label htmlFor="unit_type"><PubIcon name="building" /> Unit type</label>
+                <label htmlFor="unit_type"><PubIcon name="building" /> {t("Unit type")}</label>
                 <select key={`u-${query.unit_type}`} id="unit_type" name="unit_type" defaultValue={query.unit_type} onChange={(event) => !sheet && update({ ...query, unit_type: event.target.value })}>
-                  <option value="">Any unit type</option>
-                  {Object.entries(UNIT_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  <option value="">{t("Any unit type")}</option>
+                  {Object.entries(UNIT_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}
                 </select>
               </div>
 
               <div className="pub-sheet-actions">
-                <button type="button" className="pub-btn pub-btn-secondary pub-btn-lg" disabled={!filtersActive} onClick={() => { setSheet(false); update({ ...query, region: "", property_type: "", unit_type: "" }); }}>Clear</button>
+                <button type="button" className="pub-btn pub-btn-secondary pub-btn-lg" disabled={!filtersActive} onClick={() => { setSheet(false); update({ ...query, region: "", property_type: "", unit_type: "" }); }}>{t("Clear")}</button>
                 <button type="submit" className="pub-btn pub-btn-primary pub-btn-lg">
-                  {pending ? <span className="flex items-center gap-2"><span className="pub-spinner" /> Updating</span> : `Show ${spaces(total)}`}
+                  {pending ? <span className="flex items-center gap-2"><span className="pub-spinner" /> {t("Updating")}</span> : `${t("Show")} ${spaces(total)}`}
                 </button>
               </div>
             </div>
 
             <div className="pub-search-actions">
               <button type="button" className="pub-btn pub-btn-secondary pub-btn-lg pub-search-more-toggle" onClick={() => setSheet(true)} aria-controls="pub-filters" aria-expanded={sheet}>
-                <PubIcon name="sliders" /> Filters {extraFilters > 0 && <span className="pub-badge pub-badge-soft">{extraFilters}</span>}
+                <PubIcon name="sliders" /> {t("Filters")} {extraFilters > 0 && <span className="pub-badge pub-badge-soft">{extraFilters}</span>}
               </button>
               <button type="submit" className="pub-btn pub-btn-primary pub-search-submit">
-                <PubIcon name="search" /> Search spaces
+                <PubIcon name="search" /> {t("Search spaces")}
               </button>
             </div>
           </div>
@@ -164,15 +167,15 @@ export function HeroSearch({ query, regions, total, availableTotal, typeCounts }
             <span className="pub-live-dot" aria-hidden="true" />
             <span>
               {pending
-                ? "Updating results…"
+                ? t("Updating results…")
                 : filtersActive
-                  ? `${total} of ${availableTotal} available units match`
-                  : availableTotal === 1 ? "1 available unit right now" : `${availableTotal} available units right now`}
+                  ? t(":shown of :total available units match", { shown: total, total: availableTotal })
+                  : plural(t, availableTotal, "1 available unit right now", ":count available units right now")}
             </span>
           </p>
           {Object.values(typeCounts).some((count) => count > 0) && (
             <div className="pub-quick-types">
-              <span>Popular:</span>
+              <span>{t("Popular:")}</span>
               {quickTypes.filter(([value]) => (typeCounts[value] ?? 0) > 0).map(([value, label]) => (
                 <a
                   key={value}
@@ -181,7 +184,7 @@ export function HeroSearch({ query, regions, total, availableTotal, typeCounts }
                   aria-current={query.unit_type === value ? "true" : "false"}
                   onClick={(event) => { event.preventDefault(); update({ ...query, unit_type: query.unit_type === value ? "" : value }); }}
                 >
-                  {label} <small>{typeCounts[value]}</small>
+                  {t(label)} <small>{typeCounts[value]}</small>
                 </a>
               ))}
             </div>

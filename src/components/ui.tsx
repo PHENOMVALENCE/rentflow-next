@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppIcon, type AppIconName } from "@/components/icons";
+import { getTranslator } from "@/i18n/server";
 
 /** Page heading (Laravel `x-rf.page-head`), with an optional eyebrow kept for migrated screens. */
 export function PageHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description?: ReactNode; action?: ReactNode }) {
@@ -79,7 +80,7 @@ export function Status({ children, tone, solid = false }: { children: ReactNode;
 }
 
 /** Content panel with a heading row (Laravel `x-rf.panel`). */
-export function Panel({ title, subtitle, href, linkLabel = "View all", action, flush = false, children, className }: {
+export async function Panel({ title, subtitle, href, linkLabel, action, flush = false, children, className }: {
   title: string;
   subtitle?: ReactNode;
   href?: string;
@@ -99,7 +100,7 @@ export function Panel({ title, subtitle, href, linkLabel = "View all", action, f
         </div>
         {href && (
           <Link href={href} className="rf-panel-link">
-            {linkLabel} <AppIcon name="chevron-right" className="h-4 w-4" />
+            {linkLabel ?? (await getTranslator()).t("View all")} <AppIcon name="chevron-right" className="h-4 w-4" />
           </Link>
         )}
         {action && <div className="flex shrink-0 flex-wrap gap-2">{action}</div>}
