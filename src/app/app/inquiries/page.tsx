@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader, Status } from "@/components/ui";
+import { AppIcon } from "@/components/icons";
+import { Empty, PageHeader, Panel, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { getInquiryQueue } from "@/server/rentflow/inquiry-read-model";
 
@@ -15,18 +16,31 @@ export default async function InquiriesPage() {
         description="Follow public listing inquiries from first contact through qualification."
       />
 
-      <div className="rf-card overflow-hidden">
-        {inquiries.length === 0 ? (
-          <p className="p-8 text-center text-sm text-[var(--muted-strong)]">No property inquiries are waiting in your organization.</p>
-        ) : inquiries.map((inquiry) => (
-          <Link key={inquiry.id} href={`/app/inquiries/${inquiry.id}`} className="grid gap-4 border-b border-[var(--border)] p-5 last:border-b-0 hover:bg-slate-50 md:grid-cols-[1.1fr_1fr_.7fr_auto] md:items-center">
-            <div><p className="font-medium">{inquiry.name}</p><p className="mt-1 text-xs text-[var(--muted)]">{inquiry.phone}{inquiry.email ? ` · ${inquiry.email}` : ""}</p></div>
-            <div><p className="text-sm font-medium">{inquiry.listingTitle}</p><p className="mt-1 text-xs text-[var(--muted)]">{inquiry.createdAt}</p></div>
-            <Status>{inquiry.status}</Status>
-            <span className="text-xs font-medium">{inquiry.prospectId ? "Prospect created" : "Review →"}</span>
-          </Link>
-        ))}
-      </div>
+      {inquiries.length === 0 ? (
+        <Empty icon="inbox" title="No property inquiries">New public listing inquiries for your organization will appear here.</Empty>
+      ) : (
+        <Panel title="Inquiry queue" subtitle={`${inquiries.length} ${inquiries.length === 1 ? "inquiry" : "inquiries"} awaiting or moving through review`} flush>
+          <ul className="rf-list">
+            {inquiries.map((inquiry) => (
+              <li key={inquiry.id}>
+                <Link href={`/app/inquiries/${inquiry.id}`} className="rf-list-row">
+                  <span className="rf-list-icon" aria-hidden="true"><AppIcon name="chat" className="h-[18px] w-[18px]" /></span>
+                  <span className="rf-list-main">
+                    <span className="rf-list-title block">{inquiry.name}</span>
+                    <span className="rf-list-meta block">{inquiry.phone}{inquiry.email ? ` · ${inquiry.email}` : ""}</span>
+                    <span className="rf-list-meta block">{inquiry.listingTitle} · {inquiry.createdAt}</span>
+                  </span>
+                  <span className="rf-list-aside">
+                    <Status>{inquiry.status}</Status>
+                    <span className="text-xs text-[var(--muted)]">{inquiry.prospectId ? "Prospect created" : "Needs review"}</span>
+                  </span>
+                  <AppIcon name="chevron-right" className="rf-chevron" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </>
   );
 }
