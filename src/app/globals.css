@@ -214,3 +214,28 @@
     display: none;
   }
 }
+
+/*
+ * Migrated screens still use a few raw Tailwind palettes for alerts. Re-point them at the
+ * baseline status tones so success/warning/error notices match the Laravel badges.
+ */
+@theme {
+  --color-emerald-50: #f3fbec;
+  --color-emerald-200: #b7eb8f;
+  --color-emerald-700: #237804;
+  --color-emerald-800: #237804;
+  --color-emerald-900: #135200;
+  --color-emerald-950: #092b00;
+  --color-amber-50: #fffaeb;
+  --color-amber-200: #ffe08a;
+  --color-amber-900: #8a5300;
+  --color-amber-950: #613400;
+  --color-red-50: #fff4f3;
+  --color-red-200: #ffccc7;
+  --color-red-700: #a8071a;
+  --color-red-800: #a8071a;
+  --color-red-900: #820014;
+  --color-slate-50: #f5f8fc;
+  --color-slate-100: #eef2f7;
+  --color-slate-950: #0b1b33;
+}
