@@ -69,7 +69,7 @@ export async function requestRegistrationOtp(formData: FormData) {
 
   let normalizedPhone: string;
   try { normalizedPhone = normalizeTanzaniaPhone(parsed.data.phone); } catch { redirect("/register?error=phone"); }
-  const email = parsed.data.email.toLowerCase();
+  const email = (parsed.data.email ?? "").toLowerCase();
   const existing = await db.user.findFirst({ where: { OR: [{ phone: normalizedPhone }, ...(email ? [{ email }] : [])] } });
   if (existing) redirect("/login?error=registered");
 
