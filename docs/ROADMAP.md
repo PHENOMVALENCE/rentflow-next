@@ -14,7 +14,7 @@ This is the single source for **what is done, what is next and what blocks relea
 | Persistence | Prisma schema has 44 models. **No migration has been generated or applied.** Known schema gaps are in `SCHEMA_PARITY_GAPS.md`. |
 | Runtime mode | Without `DATABASE_URL` the app runs in demo mode with synthetic read data. The demo session is a platform admin unless `DEMO_ROLE` is set at build time (`DEVELOPER_ONBOARDING.md`). Write paths, reports and organization context require the database. |
 | Quality gates | `typecheck`, `lint`, `test` (57 unit tests) and `next build` pass locally; CI runs all four. No integration or Playwright tests exist yet. |
-| Release | Merged to `main` through PR #2 (24 Oct 2026). Vercel Git deployments are disabled (`vercel.json`); production deploys are manual and have not been run for this release (see `DEPLOYMENT.md`). |
+| Release | Ready to merge as PR #2 (`codex/masterchanges` → `main`, CI green); the PR is still marked draft. Vercel Git deployments are disabled (`vercel.json`); production deploys are manual and have not been run for this release (see `DEPLOYMENT.md`). |
 | Validated parity | **None.** No row in `PARITY_MATRIX.md` is `PARITY` because no capability has been exercised end-to-end against PostgreSQL. |
 | Bottom line | Everything that can be built without external infrastructure is built. What remains is M1 (database), M2 (integration evidence), M5 (providers) and M6 (data cutover) — none can be finished from code alone. |
 
