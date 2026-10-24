@@ -1,8 +1,9 @@
 # RentFlow Next Documentation Map
 
-Start with **`ROADMAP.md`** for current status and **`IMPLEMENTATION_ROADMAP.md`** for the complete module-by-module execution plan.
+New to the project? Read **`PROJECT_OVERVIEW.md`** first. Then **`ROADMAP.md`** for current status and **`IMPLEMENTATION_ROADMAP.md`** for the complete module-by-module execution plan.
 
 ## Status and planning
+- `PROJECT_OVERVIEW.md` — what RentFlow is, how it is built, what is finished and what is blocked.
 - `ROADMAP.md` — what is done, what is next, what blocks release.
 - `IMPLEMENTATION_ROADMAP.md` — full implementation sequence, dependencies, milestone gates and production exit criteria.
 - `MODULE_STATUS_TRACKER.md` — conservative current state and next gate for every module.

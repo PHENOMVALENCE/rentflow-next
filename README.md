@@ -75,7 +75,7 @@ Tests sit next to the code they cover (`*.test.ts`).
 
 ## Status and roadmap
 
-Current state, milestones and known gaps: **`docs/ROADMAP.md`**. Per-capability evidence: `docs/PARITY_MATRIX.md`. Method and phase definitions: `docs/MIGRATION_PLAN.md`.
+Plain-language summary of the product, architecture and status: **`docs/PROJECT_OVERVIEW.md`**. Current state, milestones and known gaps: **`docs/ROADMAP.md`**. Per-capability evidence: `docs/PARITY_MATRIX.md`. Method and phase definitions: `docs/MIGRATION_PLAN.md`.
 
 ## Local development
 
