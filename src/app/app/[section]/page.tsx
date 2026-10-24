@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader, Status } from "@/components/ui";
+import { AppIcon } from "@/components/icons";
+import { Empty, Metric, PageHeader, Panel, Status } from "@/components/ui";
 import { canAccessSection, canCreateSection } from "@/server/auth/authorization";
 import { requireSession, type SessionPayload } from "@/server/auth/session";
 import { getAccessibleCommunities } from "@/server/rentflow/community-read-model";
@@ -48,9 +49,9 @@ export default async function Section({ params }: { params: Promise<{ section: s
   if (!canAccessSection(session.role, section)) notFound();
   const createLabel = canCreateSection(session.role, section) ? singular[section] : undefined;
   const headerAction = section === "supervisors"
-    ? <Link href="/app/supervisors/manage" className="rf-button rf-button-dark">Manage supervisors</Link>
+    ? <Link href="/app/supervisors/manage" className="rf-button rf-button-dark"><AppIcon name="users" className="h-4 w-4" /> Manage supervisors</Link>
     : createLabel
-      ? <Link href={`/app/${section}/new`} className="rf-button rf-button-dark">New {createLabel}</Link>
+      ? <Link href={`/app/${section}/new`} className="rf-button rf-button-dark"><AppIcon name="plus" className="h-4 w-4" /> New {createLabel}</Link>
       : undefined;
 
   return (
@@ -64,57 +65,185 @@ export default async function Section({ params }: { params: Promise<{ section: s
 async function renderSection(section: SectionName, session: SessionPayload) {
   if (section === "properties") {
     const rows = await getPropertiesSection(session);
-    return <div className="rf-card overflow-hidden"><div className="rf-table-head"><span>Property</span><span>Location</span><span>Occupancy</span><span>Supervisor</span></div>{rows.map((row) => <div className="rf-table-row" key={row.id}><div><p className="font-medium">{row.primary}</p></div><span>{row.secondary}</span><span>{row.tertiary}</span><span>{row.quaternary}</span></div>)}</div>;
+    if (rows.length === 0) return <Empty icon="building" title="No properties yet">Add the first property to begin building the portfolio.</Empty>;
+    return (
+      <Panel title="Portfolio" subtitle={`${rows.length} ${rows.length === 1 ? "property" : "properties"} in your current scope`} flush>
+        <div className="overflow-x-auto">
+          <div className="rf-table-head min-w-[720px]"><span>Property</span><span>Location</span><span>Occupancy</span><span>Supervisor</span></div>
+          {rows.map((row) => (
+            <div className="rf-table-row min-w-[720px]" key={row.id}>
+              <div><p className="font-semibold text-[var(--foreground)]">{row.primary}</p></div>
+              <span className="text-[var(--muted-strong)]">{row.secondary}</span>
+              <span>{row.tertiary}</span>
+              <span>{row.quaternary}</span>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    );
   }
-  if (section === "units") return <Cards rows={await getUnitsSection(session)} />;
-  if (section === "tenants") return <Cards rows={await getTenantsSection(session)} />;
-  if (section === "supervisors") return <Cards rows={await getSupervisorsSection(session)} />;
+  if (section === "units") return <Cards rows={await getUnitsSection(session)} emptyTitle="No units yet" emptyCopy="Units appear here once rentable spaces are added to the portfolio." />;
+  if (section === "tenants") return <Cards rows={await getTenantsSection(session)} emptyTitle="No tenants yet" emptyCopy="Tenant records and their current rental relationships will appear here." />;
+  if (section === "supervisors") return <Cards rows={await getSupervisorsSection(session)} emptyTitle="No supervisors assigned" emptyCopy="Assign supervisors to properties to expose operational responsibility here." />;
 
   if (section === "notices") {
     const [notices, communities] = await Promise.all([getNoticesSection(session), getAccessibleCommunities(session)]);
     return (
-      <div className="space-y-6">
-        <section>
-          <div className="mb-3"><h2 className="font-semibold">Safety notices</h2><p className="mt-1 text-xs text-[var(--muted)]">Organization and property-scoped operational communication</p></div>
-          {notices.length === 0 ? <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No safety notices are available in your scope.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{notices.map((notice) => <Link key={notice.id} href={`/app/notices/${notice.id}`} className="rf-card p-5"><div className="flex items-center justify-between gap-3"><Status>{notice.status}</Status>{notice.meta && <span className="text-xs text-[var(--muted)]">{notice.meta}</span>}</div><h3 className="mt-4 font-semibold">{notice.title}</h3><p className="mt-1 text-sm text-[var(--muted)]">{notice.subtitle}</p><p className="mt-4 text-xs font-medium">Open notice →</p></Link>)}</div>}
-        </section>
-        <section>
-          <div className="mb-3"><h2 className="font-semibold">Communities</h2><p className="mt-1 text-xs text-[var(--muted)]">Membership and property eligibility are checked server-side.</p></div>
-          {communities.length === 0 ? <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No communities are available in your scope.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{communities.map((community) => <Link key={community.id} href={`/app/community/${community.id}`} className="rf-card p-5"><div className="flex items-center justify-between gap-3"><Status>{community.joined ? "Joined" : "Available"}</Status><span className="text-xs text-[var(--muted)]">{community.members} members</span></div><h3 className="mt-4 font-semibold">{community.name}</h3><p className="mt-1 text-sm text-[var(--muted)]">{community.messages} messages · {community.propertyId ? "Property scoped" : "Organization wide"}</p><p className="mt-4 text-xs font-medium">Open community →</p></Link>)}</div>}
-        </section>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Panel title="Safety notices" subtitle="Organization and property-scoped operational communication">
+          {notices.length === 0 ? (
+            <Empty icon="alert" title="No safety notices">No safety notices are available in your current scope.</Empty>
+          ) : (
+            <div className="grid gap-3">
+              {notices.map((notice) => (
+                <Link key={notice.id} href={`/app/notices/${notice.id}`} className="group rounded-xl border border-[var(--border)] bg-white p-4 transition hover:border-[var(--border-strong)] hover:bg-[#f8fafc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]">
+                  <div className="flex items-center justify-between gap-3"><Status>{notice.status}</Status>{notice.meta && <span className="text-xs text-[var(--muted)]">{notice.meta}</span>}</div>
+                  <h3 className="mt-3 font-semibold text-[var(--foreground)]">{notice.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{notice.subtitle}</p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand)]">Open notice <AppIcon name="chevron-right" className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" /></span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        <Panel title="Communities" subtitle="Membership and property eligibility are checked server-side" href="/app/community" linkLabel="All communities">
+          {communities.length === 0 ? (
+            <Empty icon="users" title="No communities">No communities are available in your current scope.</Empty>
+          ) : (
+            <div className="grid gap-3">
+              {communities.map((community) => (
+                <Link key={community.id} href={`/app/community/${community.id}`} className="group rounded-xl border border-[var(--border)] bg-white p-4 transition hover:border-[var(--border-strong)] hover:bg-[#f8fafc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]">
+                  <div className="flex items-center justify-between gap-3"><Status>{community.joined ? "Joined" : "Available"}</Status><span className="text-xs text-[var(--muted)]">{community.members} members</span></div>
+                  <h3 className="mt-3 font-semibold text-[var(--foreground)]">{community.name}</h3>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{community.messages} messages · {community.propertyId ? "Property scoped" : "Organization wide"}</p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand)]">Open community <AppIcon name="chevron-right" className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" /></span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Panel>
       </div>
     );
   }
 
   if (section === "maintenance") {
     const rows = await getMaintenanceSection(session);
-    return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map((row) => <Link href={`/app/maintenance/${row.id}`} className="rf-card p-5" key={row.id}><div className="flex items-center justify-between gap-3"><Status>{row.status}</Status>{row.meta && <span className="text-xs text-[var(--muted)]">{row.meta}</span>}</div><h3 className="mt-4 font-semibold">{row.title}</h3><p className="mt-1 text-sm text-[var(--muted)]">{row.subtitle}</p><p className="mt-4 text-xs font-medium">Open workflow →</p></Link>)}</div>;
+    if (rows.length === 0) return <Empty icon="wrench" title="No maintenance requests">Open maintenance requests in your scope will appear here.</Empty>;
+    return (
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {rows.map((row) => (
+          <Link href={`/app/maintenance/${row.id}`} className="group rf-card p-5 transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]" key={row.id}>
+            <div className="flex items-center justify-between gap-3"><Status>{row.status}</Status>{row.meta && <span className="text-xs text-[var(--muted)]">{row.meta}</span>}</div>
+            <h3 className="mt-4 font-semibold text-[var(--foreground)]">{row.title}</h3>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{row.subtitle}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand)]">Open workflow <AppIcon name="chevron-right" className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" /></span>
+          </Link>
+        ))}
+      </div>
+    );
   }
 
   if (section === "leases") {
     const rows = await getLeasesSection(session);
-    return <div className="rf-card">{rows.map((row) => <div key={row.id} className="flex justify-between gap-4 border-b border-[var(--border)] p-5 last:border-b-0"><div><p className="font-medium">{row.tenant}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.unit} · {row.amount}</p></div><div className="text-right"><Status>{row.status}</Status><p className="mt-2 text-xs">{row.end}</p></div></div>)}</div>;
+    if (rows.length === 0) return <Empty icon="calendar" title="No leases found">Leases in your permitted scope will appear here.</Empty>;
+    return (
+      <Panel title="Lease register" subtitle={`${rows.length} ${rows.length === 1 ? "lease" : "leases"} in scope`} flush>
+        <ul className="rf-list">
+          {rows.map((row) => (
+            <li key={row.id} className="rf-list-row">
+              <span className="rf-list-icon" aria-hidden="true"><AppIcon name="calendar" className="h-[18px] w-[18px]" /></span>
+              <span className="rf-list-main"><span className="rf-list-title block">{row.tenant}</span><span className="rf-list-meta block">{row.unit} · {row.amount}</span></span>
+              <span className="rf-list-aside"><Status>{row.status}</Status><span className="text-xs text-[var(--muted)]">{row.end}</span></span>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+    );
   }
 
   if (section === "payments") {
     const rows = await getPaymentsSection(session);
-    return <div className="rf-card">{rows.map((row) => <Link href={`/app/payments/${row.id}`} key={row.id} className="grid gap-3 border-b border-[var(--border)] p-5 last:border-b-0 md:grid-cols-4 md:items-center hover:bg-slate-50"><div><p className="font-mono text-xs">{row.reference}</p><p className="mt-1 font-medium">{row.tenant}</p></div><span>{row.amount}</span><span>{row.provider}</span><span className="md:text-right"><Status>{row.status}</Status></span></Link>)}</div>;
+    if (rows.length === 0) return <Empty icon="wallet" title="No payments found">Provider transactions in your current scope will appear here.</Empty>;
+    return (
+      <Panel title="Payment activity" subtitle="Provider reconciliation and authoritative payment state" flush>
+        <ul className="rf-list">
+          {rows.map((row) => (
+            <li key={row.id}>
+              <Link href={`/app/payments/${row.id}`} className="rf-list-row">
+                <span className="rf-list-icon" aria-hidden="true"><AppIcon name="wallet" className="h-[18px] w-[18px]" /></span>
+                <span className="rf-list-main"><span className="rf-list-title block">{row.tenant}</span><span className="rf-list-meta block rf-mono">{row.reference} · {row.provider}</span></span>
+                <span className="rf-list-aside"><strong className="text-sm font-semibold text-[var(--foreground)]">{row.amount}</strong><Status>{row.status}</Status></span>
+                <AppIcon name="chevron-right" className="rf-chevron" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+    );
   }
 
   if (section === "listings") {
     const rows = await getListingsManagement(session.organizationId);
-    return <div className="rf-card overflow-hidden">{rows.map((row) => <div key={row.id} className="grid gap-4 border-b border-[var(--border)] p-5 last:border-b-0 lg:grid-cols-[1.4fr_.6fr_.7fr_auto] lg:items-center"><div><p className="font-medium">{row.title}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.property} · {row.unit}</p></div><Status>{row.status}</Status><p className="text-xs text-[var(--muted)]">Published: {row.publishedAt}</p><div className="flex gap-2">{row.status === "Published" ? <form action={pauseListing}><input type="hidden" name="listingId" value={row.id} /><button className="rf-button rf-button-light" type="submit">Pause</button></form> : <form action={publishListing}><input type="hidden" name="listingId" value={row.id} /><button className="rf-button rf-button-dark" type="submit" disabled={!row.eligible}>Publish</button></form>}</div></div>)}</div>;
+    if (rows.length === 0) return <Empty icon="home" title="No listings yet">Eligible units can be prepared and published from this workspace.</Empty>;
+    return (
+      <Panel title="Listing management" subtitle="Public presentation follows authoritative occupancy and eligibility" flush>
+        <div>
+          {rows.map((row) => (
+            <div key={row.id} className="grid gap-4 border-b border-[var(--border)] p-5 last:border-b-0 lg:grid-cols-[1.4fr_.6fr_.7fr_auto] lg:items-center">
+              <div><p className="font-semibold text-[var(--foreground)]">{row.title}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.property} · {row.unit}</p></div>
+              <Status>{row.status}</Status>
+              <p className="text-xs text-[var(--muted)]">Published: {row.publishedAt}</p>
+              <div className="flex gap-2">
+                {row.status === "Published" ? (
+                  <form action={pauseListing}><input type="hidden" name="listingId" value={row.id} /><button className="rf-button rf-button-light" type="submit">Pause</button></form>
+                ) : (
+                  <form action={publishListing}><input type="hidden" name="listingId" value={row.id} /><button className="rf-button rf-button-dark" type="submit" disabled={!row.eligible}>Publish</button></form>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    );
   }
 
   if (section === "reports") {
     const rows = await getReportsSection(session);
-    return <div className="grid gap-4 md:grid-cols-3">{rows.map(([name, value]) => <div className="rf-card p-6" key={name}><p className="text-sm text-[var(--muted)]">{name}</p><p className="mt-2 text-3xl font-semibold">{value}</p></div>)}</div>;
+    return (
+      <section aria-labelledby="report-snapshot">
+        <h2 id="report-snapshot" className="sr-only">Operational report snapshot</h2>
+        <div className="rf-metrics">
+          {rows.map(([name, value]) => <Metric key={name} label={name} value={value} icon="chart" />)}
+        </div>
+      </section>
+    );
   }
 
-  return <div className="rf-card max-w-2xl p-6"><h2 className="font-semibold">Organization settings</h2><p className="mt-2 text-sm text-[var(--muted-strong)]">Workspace identity, authentication and provider settings are controlled server-side. Sensitive provider secrets are configured only through runtime environment variables.</p></div>;
+  return (
+    <Panel title="Organization settings" subtitle="Runtime and workspace configuration" className="max-w-3xl">
+      <div className="flex gap-3 rounded-xl border border-[var(--border)] bg-[#f8fafc] p-4">
+        <span className="rf-icon-tile shrink-0" aria-hidden="true"><AppIcon name="settings" /></span>
+        <div>
+          <h3 className="font-semibold text-[var(--foreground)]">Configuration is protected server-side</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted-strong)]">Workspace identity, authentication and provider settings are controlled server-side. Sensitive provider secrets are configured only through runtime environment variables.</p>
+        </div>
+      </div>
+    </Panel>
+  );
 }
 
-function Cards({ rows }: { rows: CardRow[] }) {
-  if (rows.length === 0) return <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No records found.</div>;
-  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map((row) => <div className="rf-card p-5" key={row.id}><div className="flex items-center justify-between gap-3"><Status>{row.status}</Status>{row.meta && <span className="text-xs text-[var(--muted)]">{row.meta}</span>}</div><h3 className="mt-4 font-semibold">{row.title}</h3><p className="mt-1 text-sm text-[var(--muted)]">{row.subtitle}</p></div>)}</div>;
+function Cards({ rows, emptyTitle, emptyCopy }: { rows: CardRow[]; emptyTitle: string; emptyCopy: string }) {
+  if (rows.length === 0) return <Empty icon="info" title={emptyTitle}>{emptyCopy}</Empty>;
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {rows.map((row) => (
+        <article className="rf-card p-5" key={row.id}>
+          <div className="flex items-center justify-between gap-3"><Status>{row.status}</Status>{row.meta && <span className="text-xs text-[var(--muted)]">{row.meta}</span>}</div>
+          <h3 className="mt-4 font-semibold text-[var(--foreground)]">{row.title}</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{row.subtitle}</p>
+        </article>
+      ))}
+    </div>
+  );
 }
