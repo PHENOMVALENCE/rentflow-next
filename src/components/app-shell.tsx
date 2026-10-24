@@ -4,11 +4,16 @@ import type { Role } from "@prisma/client";
 import { logoutAction } from "@/server/auth/actions";
 
 const roleNav: Record<Role, string[]> = {
-  PLATFORM_ADMIN: ["dashboard", "platform", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
-  LANDLORD: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports", "settings"],
-  PROPERTY_ADMIN: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "supervisors", "maintenance", "notices", "reports"],
-  SUPERVISOR: ["dashboard", "units", "tenants", "maintenance", "notices"],
-  TENANT: ["dashboard", "leases", "payments", "maintenance", "notices"],
+  PLATFORM_ADMIN: ["dashboard", "platform", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports", "settings"],
+  LANDLORD: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports", "settings"],
+  PROPERTY_ADMIN: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports"],
+  SUPERVISOR: ["dashboard", "units", "tenants", "receipts", "maintenance", "notices"],
+  TENANT: ["dashboard", "leases", "payments", "receipts", "maintenance", "notices"],
+};
+
+const navLabels: Record<string, string> = {
+  "payment-exceptions": "Payment exceptions",
+  "unpaid-terms": "Unpaid terms",
 };
 
 function initials(name: string) {
@@ -41,7 +46,7 @@ export function AppShell({
         </div>
         <nav className="space-y-1">
           {nav.map((item) => (
-            <Link key={item} href={item === "dashboard" ? "/app" : `/app/${item}`} className="block rounded-xl px-3 py-2.5 text-sm capitalize text-[var(--muted-strong)] hover:bg-white hover:text-black">{item}</Link>
+            <Link key={item} href={item === "dashboard" ? "/app" : `/app/${item}`} className="block rounded-xl px-3 py-2.5 text-sm text-[var(--muted-strong)] hover:bg-white hover:text-black">{navLabels[item] ?? item.replaceAll("-", " ")}</Link>
           ))}
         </nav>
         <div className="mt-auto space-y-3 text-xs text-[var(--muted)]">
