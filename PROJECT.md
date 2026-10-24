@@ -43,4 +43,4 @@ Maintenance, supervisor operations, notices, notifications, reporting and audit 
 
 ## Migration rule
 
-Laravel remains the behavioral reference until a row in `docs/PARITY_MATRIX.md` is validated or an ADR explicitly changes behavior.
+Laravel remains the behavioral reference until a row in `docs/PARITY_MATRIX.md` is validated or an ADR explicitly changes behavior. Delivery order and status: `docs/ROADMAP.md`.

@@ -5,17 +5,18 @@ RentFlow Next is a parity migration of `PHENOMVALENCE/RentFlow` from Laravel to 
 ## Read order
 
 1. `PROJECT.md`
-2. `docs/README.md`
-3. `docs/PRODUCT_REQUIREMENTS.md`
-4. `docs/SRS.md`
-5. `docs/DOMAIN_MODEL.md`
-6. `docs/ARCHITECTURE.md`
-7. `docs/DATABASE_SCHEMA.md`
-8. `docs/DESIGN_SYSTEM.md`
-9. `docs/UI_UX_DESIGN.md`
-10. `docs/SECURITY.md`
-11. `docs/TESTING.md`
-12. `docs/PARITY_MATRIX.md`
+2. `docs/ROADMAP.md`
+3. `docs/README.md`
+4. `docs/PRODUCT_REQUIREMENTS.md`
+5. `docs/SRS.md`
+6. `docs/DOMAIN_MODEL.md`
+7. `docs/ARCHITECTURE.md`
+8. `docs/DATABASE_SCHEMA.md`
+9. `docs/DESIGN_SYSTEM.md`
+10. `docs/UI_UX_DESIGN.md`
+11. `docs/SECURITY.md`
+12. `docs/TESTING.md`
+13. `docs/PARITY_MATRIX.md`
 
 ## Non-negotiable invariants
 
@@ -40,7 +41,7 @@ RentFlow Next is a parity migration of `PHENOMVALENCE/RentFlow` from Laravel to 
 - Money uses integer minor units or database Decimal; never authoritative floating point.
 - Every protected action re-checks authorization server-side.
 - Critical state transitions require tests.
-- Update `docs/PARITY_MATRIX.md` as Laravel behavior is migrated.
+- Update `docs/PARITY_MATRIX.md` as Laravel behavior is migrated, and `docs/ROADMAP.md` when a gap or milestone changes.
 
 ## Delivery discipline
 

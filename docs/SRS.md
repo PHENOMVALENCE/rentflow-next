@@ -30,4 +30,4 @@
 - NFR-005 Critical mutations are transaction-safe/idempotent.
 - NFR-006 Protected resources enforce authorization server-side.
 - NFR-007 Build/typecheck/tests gate release.
-- NFR-008 Production deploys through Vercel Git integration.
+- NFR-008 Production deploys to Vercel manually, after the release checklist (ADR-N007).

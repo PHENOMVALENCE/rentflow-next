@@ -33,19 +33,31 @@ React ports keep the Blade class names, so styling stays shared:
 - `PageHeader`, `Metric`/`Stat`, `Status`, `Panel`, `Empty`, `Progress` in `src/components/ui.tsx` (`x-rf.*`)
 - `PublicLayout`, `PublicNavbar`, `HeroSearch`, `ListingResults`, `PropertyCard`, `AuthLayout` in `src/components/pub/*` (`x-pub.*`)
 
-Target component inventory:
+Component inventory (Laravel source → state):
 
-- App shell and sidebar
-- Page header
-- KPI card
-- Status badge
-- Data card/table
-- Listing card
-- Lease rail/countdown
-- Payment summary
-- Maintenance timeline
-- Notice card
-- Empty/error state
+| Component | Laravel | State |
+|---|---|---|
+| App shell, sidebar, account menu | `layouts/app`, `partials/nav*` | Ported |
+| Page header | `x-rf.page-head` | Ported |
+| Metric / KPI | `x-rf.metric`, `x-rf.kpi` | Ported |
+| Status badge | `x-rf.status` | Ported |
+| Panel, list rows, attention item | `x-rf.panel`, `x-rf.attention-item` | Ported |
+| Empty state | `x-rf.empty` | Ported |
+| Progress | `x-rf.progress` | Ported |
+| Avatar | `x-rf.avatar` | Ported |
+| Public navbar, footer, brand, state | `x-pub.*` | Ported |
+| Listing card, property image | `x-pub.property-card`, `property-image` | Ported |
+| Property tile | `x-rf.property-tile` | Pending (dashboard) |
+| Lease countdown / rail | `x-rf.countdown` | Pending |
+| Receipt slip | `x-rf.receipt-slip` | Pending |
+| Maintenance timeline | `maintenance/partials/timeline` | Pending |
+| Charts | `x-rf.line-chart`, `x-rf.donut-chart` | Pending |
+| Dialog, file preview | `x-rf.dialog`, `x-rf.file-preview*` | Pending |
+| Household, person, SMS components | `x-rf.household`, `person`, `sms-*` | Pending |
+| Language switcher / prompt | `x-rf.language-*` | Pending (G8) |
+| Quick view, gallery lightbox, virtual tour | `public/partials/*` | Pending (G6) |
+
+Pending components are scheduled in `ROADMAP.md` M3–M4.
 
 ## Responsive behavior
 

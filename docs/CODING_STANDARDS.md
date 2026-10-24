@@ -11,11 +11,13 @@ Server Components by default. Use Route Handlers for provider/webhook/API bounda
 ## Architecture
 
 - `src/app`: route composition
-- `src/components`: reusable presentation
-- `src/features`: feature UI/actions
+- `src/components`: reusable presentation (Laravel class names)
 - `src/domain`: pure business logic
-- `src/server`: DB/auth/services/adapters
+- `src/server/rentflow`: feature read models and server actions
+- `src/server/{auth,payments,integrations,storage}`: identity, payments, adapters
 - `src/lib`: generic utilities
+
+A `"use server"` module may export only async functions. Put constants, schemas and helpers in a sibling module (for example `pin-constants.ts`, `tenant-onboarding-notes.ts`) or the production build fails.
 
 Pages do not contain critical transition logic.
 
