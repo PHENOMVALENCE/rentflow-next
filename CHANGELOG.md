@@ -2,6 +2,20 @@
 
 All notable RentFlow Next changes are recorded here.
 
+## 2026-10-24
+
+### Changed
+- Adopted the Laravel RentFlow visual baseline: IBM Plex, blue/teal brand, gradient house mark, favicon and hero photography.
+- Public home now matches the Laravel discovery page (hero search, filters, sort, listing cards, how-it-works, landlord CTA, footer); `/listings` redirects to it.
+- Listing detail page ported with the inline enquiry form; `/listings/[id]/inquire` redirects to it.
+- Authenticated shell rebuilt: collapsible sidebar with Laravel role navigation, top bar, account menu and mobile drawer.
+- Dashboard rebuilt with metrics, needs-attention, maintenance, payments and renewals panels.
+- Sign-in, registration, PIN recovery and invitation flows moved to the baseline guest layout.
+
+### Fixed
+- Inquiries v1 API scoped through organization listings (previous query referenced a non-existent relation).
+- Production build: non-action exports moved out of `"use server"` modules.
+
 ## 2026-10-23
 
 ### Added

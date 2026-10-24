@@ -14,9 +14,26 @@ The visual direction is derived from the Proxima Living reference used by the La
 
 ## Tokens
 
-CSS variables are defined in `src/app/globals.css`: background, surface, foreground, muted, border, brand, brand-strong, success, warning and danger.
+The Laravel stylesheets are the source of truth and are ported, not re-invented:
+
+- `src/styles/rentflow.css` ← `resources/css/app.css` (Tailwind `@theme`: IBM Plex, primary `#1890ff`/`#096dd9`, accent `#13c2c2`, canvas `#f5f7fb`, radii, motion).
+- `src/styles/app-ui.css` ← `resources/css/app-ui.css` (authenticated shell, metrics, panels, lists, status badges).
+- `src/styles/public.css` ← `resources/css/public.css` (public site, listing pages, guest/auth flows).
+- `src/app/globals.css` adds semantic aliases (`--background`, `--brand`, `--muted`…) and a compatibility layer so older `rf-button-*`, `rf-badge-*` and `rf-field` screens render in the baseline style.
+
+Deviations from the Laravel files: Livewire/Alpine-only selectors are removed, and `.rf-card` carries no default padding because migrated screens set their own. Fonts are self-hosted with `@fontsource/ibm-plex-*` instead of the Bunny CDN.
+
+When a Laravel stylesheet changes, re-copy it and re-apply these deviations.
 
 ## Components
+
+React ports keep the Blade class names, so styling stays shared:
+
+- `AppShell` (`layouts/app`), `navigationFor` (`layouts/partials/nav`), `AppIcon`/`PubIcon` (icon partials)
+- `PageHeader`, `Metric`/`Stat`, `Status`, `Panel`, `Empty`, `Progress` in `src/components/ui.tsx` (`x-rf.*`)
+- `PublicLayout`, `PublicNavbar`, `HeroSearch`, `ListingResults`, `PropertyCard`, `AuthLayout` in `src/components/pub/*` (`x-pub.*`)
+
+Legacy list:
 
 - App shell and sidebar
 - Page header

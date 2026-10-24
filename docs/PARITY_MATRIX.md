@@ -6,11 +6,12 @@ Status values: `NOT_STARTED`, `AUDITING`, `IN_PROGRESS`, `BLOCKED`, `PARITY`, `I
 
 | Area | Laravel reference | Next.js target | Status | Validation |
 |---|---|---|---|---|
-| Public listings | `routes/web.php`, listing UI/controllers | `src/app/(public)` + listing feature | AUDITING | Pending |
-| Public inquiries | API/web inquiry flow | route handler + service | AUDITING | Pending |
+| Visual design system | `resources/css/{app,app-ui,public}.css`, `components/rf`, `components/pub` | `src/styles/*`, `src/components/{ui,icons,app-shell}.tsx`, `src/components/pub/*` | IN_PROGRESS | Baseline CSS ported verbatim (Livewire-only selectors removed); screenshots compared at 1440px and 390px |
+| Public listings | `livewire/public/home`, `listing-show` | `src/app/page.tsx`, `src/app/listings/[id]` | IN_PROGRESS | Filters/sort unit-tested (`src/lib/listing-filters.test.ts`); quick-view dialog and photo lightbox not yet ported |
+| Public inquiries | `listing-show` enquiry form | inline form on `/listings/[id]` + `submitPropertyInquiry` | IN_PROGRESS | Field validation messages per input still pending |
 | Authentication | Laravel session auth | server auth boundary | NOT_STARTED | Pending |
 | Role authorization | middleware/policies/gates | server policy layer | NOT_STARTED | Pending |
-| Dashboard | authenticated app routes | role-aware dashboard | NOT_STARTED | Pending |
+| Dashboard | `livewire/app/home*.blade.php`, `layouts/app` | `src/app/app/page.tsx`, `AppShell` | IN_PROGRESS | Role navigation unit-tested (`src/lib/navigation.test.ts`); property tiles and dedicated tenant/supervisor homes pending |
 | Properties | property routes/UI/domain | property feature | AUDITING | Pending |
 | Units | unit routes/UI/domain | unit feature | AUDITING | Pending |
 | Tenants | tenant routes/UI/domain | tenant feature | AUDITING | Pending |
