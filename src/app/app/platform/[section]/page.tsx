@@ -183,6 +183,6 @@ function Rows({ rows, empty }: { rows: PlatformRow[]; empty: string }) {
   return <div className="rf-card overflow-hidden">{rows.map((row) => <div key={row.id} className="grid gap-3 border-b border-[var(--border)] p-5 last:border-b-0 md:grid-cols-[1.4fr_.9fr_auto] md:items-center"><div><p className="font-medium">{row.primary}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.secondary}</p></div><span className="text-xs text-[var(--muted)]">{row.meta}</span><div className="md:text-right"><Status>{row.status}</Status></div></div>)}</div>;
 }
 
-function DiagnosticCards({ rows }: { rows: readonly (readonly [string, string, string])[] }) {
-  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map(([label, status, detail]) => <div className="rf-card p-5" key={label}><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{label}</h2><Status>{status}</Status></div><p className="mt-3 text-sm leading-6 text-[var(--muted-strong)]">{detail}</p></div>)}</div>;
+function DiagnosticCards({ rows }: { rows: readonly (readonly string[])[] }) {
+  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map(([label = "", status = "", detail = ""]) => <div className="rf-card p-5" key={label}><div className="flex items-start justify-between gap-3"><h2 className="font-medium">{label}</h2><Status>{status}</Status></div><p className="mt-3 text-sm leading-6 text-[var(--muted-strong)]">{detail}</p></div>)}</div>;
 }
