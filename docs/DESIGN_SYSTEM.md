@@ -33,7 +33,7 @@ React ports keep the Blade class names, so styling stays shared:
 - `PageHeader`, `Metric`/`Stat`, `Status`, `Panel`, `Empty`, `Progress` in `src/components/ui.tsx` (`x-rf.*`)
 - `PublicLayout`, `PublicNavbar`, `HeroSearch`, `ListingResults`, `PropertyCard`, `AuthLayout` in `src/components/pub/*` (`x-pub.*`)
 
-Legacy list:
+Target component inventory:
 
 - App shell and sidebar
 - Page header
