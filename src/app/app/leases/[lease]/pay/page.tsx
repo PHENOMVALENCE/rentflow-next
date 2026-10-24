@@ -11,8 +11,8 @@ export default async function LeasePayPage({ params }: { params: Promise<{ lease
       id: leaseId,
       ...(session.role === "TENANT" ? { tenant: { userId: session.userId } } : session.organizationId ? { unit: { property: { organizationId: session.organizationId } } } : {}),
     },
-    include: { obligations: { orderBy: { createdAt: "desc" }, take: 1 } },
+    include: { obligation: true },
   });
-  if (!lease || !lease.obligations[0]) notFound();
-  redirect(`/app/payments/${lease.obligations[0].id}`);
+  if (!lease?.obligation) notFound();
+  redirect(`/app/payments/${lease.obligation.id}`);
 }
