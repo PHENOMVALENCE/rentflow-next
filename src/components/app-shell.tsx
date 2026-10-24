@@ -8,7 +8,7 @@ const roleNav: Record<Role, string[]> = {
   LANDLORD: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports", "settings"],
   PROPERTY_ADMIN: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports"],
   SUPERVISOR: ["dashboard", "units", "tenants", "receipts", "maintenance", "notices"],
-  TENANT: ["dashboard", "leases", "payments", "receipts", "maintenance", "notices"],
+  TENANT: ["dashboard", "leases", "agreements", "payments", "receipts", "maintenance", "notices"],
 };
 
 const navLabels: Record<string, string> = {
