@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui";
+import { AppIcon } from "@/components/icons";
+import { Empty, PageHeader, Panel } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { getReceipts } from "@/server/rentflow/payment-parity-read-model";
 
@@ -10,21 +11,50 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader eyebrow="Payments" title="Receipts" description="Verified payment evidence for terms within your authorized scope." action={<Link href="/app/payments" className="rf-button rf-button-light">Payments</Link>} />
-      <form className="rf-card mb-5 flex gap-3 p-4" method="get">
-        <input name="q" defaultValue={q} placeholder="Search receipt, tenant, property or unit" className="min-w-0 flex-1 rounded-xl border border-[var(--border)] px-4 py-3 text-sm" />
-        <button className="rf-button rf-button-dark">Search</button>
+      <PageHeader
+        eyebrow="Payments"
+        title="Receipts"
+        description="Verified payment evidence for terms within your authorized scope."
+        action={<Link href="/app/payments" className="rf-button rf-button-light"><AppIcon name="wallet" className="h-4 w-4" /> Payments</Link>}
+      />
+
+      <form className="rf-panel mb-5 p-4" method="get" role="search">
+        <label className="sr-only" htmlFor="receipt-search">Search receipts</label>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="rf-search flex-1">
+            <AppIcon name="search" className="h-4 w-4 text-[var(--muted)]" />
+            <input id="receipt-search" name="q" defaultValue={q} placeholder="Search receipt, tenant, property or unit" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+          </div>
+          <button className="rf-button rf-button-dark"><AppIcon name="search" className="h-4 w-4" /> Search</button>
+        </div>
       </form>
-      <div className="rf-card overflow-hidden">
-        {receipts.length === 0 ? <p className="p-8 text-center text-sm text-[var(--muted-strong)]">No receipts found.</p> : receipts.map((receipt) => (
-          <Link key={receipt.id} href={`/app/receipts/${receipt.id}`} className="grid gap-3 border-b border-[var(--border)] p-5 last:border-b-0 hover:bg-slate-50 md:grid-cols-[1fr_1fr_.7fr_auto] md:items-center">
-            <div><p className="font-medium">{receipt.receiptNo}</p><p className="mt-1 text-xs text-[var(--muted)]">{receipt.tenant}</p></div>
-            <div><p className="text-sm">{receipt.property} · {receipt.unit}</p><p className="mt-1 text-xs text-[var(--muted)]">{receipt.termMonths}-month term</p></div>
-            <span className="text-sm font-medium">{receipt.amount}</span>
-            <span className="text-xs text-[var(--muted)] md:text-right">{receipt.issuedAt}</span>
-          </Link>
-        ))}
-      </div>
+
+      {receipts.length === 0 ? (
+        <Empty icon="file" title={q ? "No matching receipts" : "No receipts found"}>
+          {q ? "Try another receipt number, tenant, property or unit." : "Verified receipts in your current scope will appear here."}
+        </Empty>
+      ) : (
+        <Panel title="Receipt register" subtitle={`${receipts.length} ${receipts.length === 1 ? "receipt" : "receipts"} found`} flush>
+          <ul className="rf-list">
+            {receipts.map((receipt) => (
+              <li key={receipt.id}>
+                <Link href={`/app/receipts/${receipt.id}`} className="rf-list-row">
+                  <span className="rf-list-icon" aria-hidden="true"><AppIcon name="file" className="h-[18px] w-[18px]" /></span>
+                  <span className="rf-list-main">
+                    <span className="rf-list-title block">{receipt.receiptNo}</span>
+                    <span className="rf-list-meta block">{receipt.tenant} · {receipt.property} · {receipt.unit}</span>
+                  </span>
+                  <span className="rf-list-aside">
+                    <strong className="text-sm font-semibold text-[var(--foreground)]">{receipt.amount}</strong>
+                    <span className="text-xs text-[var(--muted)]">{receipt.termMonths}-month term · {receipt.issuedAt}</span>
+                  </span>
+                  <AppIcon name="chevron-right" className="rf-chevron" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </>
   );
 }
