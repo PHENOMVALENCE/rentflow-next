@@ -6,11 +6,35 @@ import { db } from "@/server/db";
 import { hashPin, verifyPin } from "./password";
 import { createSession, requireSession } from "./session";
 
+export const UNSET_PIN_HASH = "UNSET_PIN";
+
 const changePinSchema = z.object({
   currentPin: z.string().regex(/^\d{4}$/),
   newPin: z.string().regex(/^\d{4}$/),
   confirmPin: z.string().regex(/^\d{4}$/),
 });
+
+const setupPinSchema = z.object({
+  newPin: z.string().regex(/^\d{4}$/),
+  confirmPin: z.string().regex(/^\d{4}$/),
+});
+
+export async function setupAccountPinAction(formData: FormData) {
+  const session = await requireSession();
+  const parsed = setupPinSchema.safeParse({ newPin: formData.get("newPin"), confirmPin: formData.get("confirmPin") });
+  if (!parsed.success || parsed.data.newPin !== parsed.data.confirmPin) redirect("/app/pin?error=invalid");
+
+  const user = await db.user.findUnique({ where: { id: session.userId }, select: { id: true, passwordHash: true } });
+  if (!user) redirect("/login");
+  if (user.passwordHash !== UNSET_PIN_HASH) redirect("/app/account");
+
+  await db.$transaction([
+    db.user.update({ where: { id: user.id }, data: { passwordHash: hashPin(parsed.data.newPin) } }),
+    db.auditLog.create({ data: { organizationId: session.organizationId, actorId: session.userId, action: "account.pin_set", resourceType: "User", resourceId: session.userId } }),
+  ]);
+  await createSession({ userId: session.userId, organizationId: session.organizationId, role: session.role });
+  redirect("/app/onboarding/profile");
+}
 
 export async function changeAccountPinAction(formData: FormData) {
   const session = await requireSession();
