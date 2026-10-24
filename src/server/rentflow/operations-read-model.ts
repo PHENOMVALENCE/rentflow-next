@@ -21,7 +21,7 @@ type ReadScope = {
   tenantId?: string;
 };
 
-async function resolveScope(session: SessionPayload): Promise<ReadScope> {
+export async function resolveScope(session: SessionPayload): Promise<ReadScope> {
   if (!hasDatabaseConfiguration()) return { organizationId: session.organizationId };
 
   if (session.role === "SUPERVISOR") {

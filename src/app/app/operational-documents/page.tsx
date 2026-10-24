@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { NeedsOrganization } from "@/components/needs-organization";
 import { PageHeader } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
@@ -8,7 +8,7 @@ const date = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", 
 
 export default async function OperationalDocumentsPage() {
   const session = await requireSession(["LANDLORD", "PROPERTY_ADMIN", "PLATFORM_ADMIN"]);
-  if (!session.organizationId) notFound();
+  if (!session.organizationId) return <NeedsOrganization session={session} title="Operational documents" />;
   const documents = hasDatabaseConfiguration() ? await db.operationalDocument.findMany({ where: { organizationId: session.organizationId }, orderBy: [{ category: "asc" }, { createdAt: "desc" }] }) : [];
 
   return (

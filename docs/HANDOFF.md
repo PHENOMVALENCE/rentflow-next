@@ -1,35 +1,39 @@
 # RentFlow Next Handoff
 
-## Production deployment
+**Last reviewed:** 24 October 2026
 
-Vercel project: `rentflow-next`
+## Where things live
 
-Production URL: `https://rentflow-next.vercel.app`
+- GitHub: `PHENOMVALENCE/rentflow-next` — implementation on `codex/masterchanges`, releases on `main`.
+- Vercel project: `rentflow-next` — production URL `https://rentflow-next.vercel.app`.
+- Laravel reference: `PHENOMVALENCE/RentFlow`.
 
-GitHub: `PHENOMVALENCE/rentflow-next`
+## Current state
 
-## Current delivered slice
+See `ROADMAP.md` §1 for the up-to-date summary. In short: every major Laravel surface has a Next.js route and most write paths exist in code, but **no database has been attached and no Prisma migration exists**, so nothing is validated against PostgreSQL yet.
 
-The application currently provides a deployable Next.js product vertical covering public discovery and all major operational navigation surfaces. Domain functions and tests encode critical lease, availability and payment invariants. Prisma defines the intended PostgreSQL persistence model.
+Without `DATABASE_URL` the app runs in demo mode: read pages show synthetic data, the session is a demo platform admin, and write paths that need the database are disabled or explain why. Demo mode never fabricates provider results (ADR-N005).
 
-## Infrastructure still required for transactional production use
+## Deployments
 
-1. Attach a dedicated PostgreSQL database and set `DATABASE_URL`.
-2. Apply Prisma migrations and seed/reference data.
-3. Configure production authentication and `AUTH_SECRET`.
-4. Configure Snippe credentials/webhook secret before real payment initiation.
-5. Configure SMS/WhatsApp provider credentials before outbound messaging.
-6. Configure private document storage before agreement uploads.
+Vercel Git deployments are disabled (`vercel.json` → `git.deploymentEnabled: false`). Merging to `main` does **not** deploy. Production is deployed manually and only on explicit request — follow `DEPLOYMENT.md`. The production URL may therefore show an older build than `main`.
 
-Until those provider resources are configured, the deployed UI uses synthetic demonstration data and does not claim external-provider transactions are real.
+## Infrastructure required for transactional use
 
-## Health check
+1. PostgreSQL + `DATABASE_URL`, then the first reviewed migration (`ROADMAP.md` M1).
+2. `AUTH_SECRET` and bootstrap variables for `npm run db:seed`.
+3. `CRON_SECRET` for `/api/cron/leases`.
+4. Private object storage adapter (`PRIVATE_STORAGE.md`).
+5. Snippe API key, webhook secret and callback URL.
+6. Briq OTP credentials; notification SMS/WhatsApp only after the provider decision.
 
-`GET /api/health`
+## Health and scheduling
 
-## Scheduler
-
-Vercel Cron invokes `/api/cron/leases`. The endpoint is retry-safe scaffolding until the persistent lease repository is connected.
+- `GET /api/health` (liveness) and `GET /api/health/readiness`.
+- Vercel Cron (UTC schedules in `vercel.json`) matches the Laravel EAT times:
+  - `/api/cron/leases` at 22:15 UTC = 01:15 EAT — advances lease milestones.
+  - `/api/cron/lease-reminders` at 05:00 UTC = 08:00 EAT — in-app renewal/grace reminders.
+- Both require `Authorization: Bearer $CRON_SECRET` and are safe to re-run.
 
 ## Safety
 

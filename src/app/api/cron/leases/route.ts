@@ -27,8 +27,10 @@ export async function GET(request: Request) {
     });
     if (next === lease.status) continue;
 
-    await db.$transaction(async (tx) => {
-      await tx.lease.update({ where: { id: lease.id }, data: { status: next } });
+    // Conditional update: a concurrent or repeated run that already moved this lease changes nothing.
+    const moved = await db.$transaction(async (tx) => {
+      const updated = await tx.lease.updateMany({ where: { id: lease.id, status: lease.status }, data: { status: next } });
+      if (updated.count === 0) return false;
 
       if (next === "RENEWAL_WINDOW" && lease.tenant.userId) {
         await tx.notification.create({
@@ -71,7 +73,9 @@ export async function GET(request: Request) {
           metadata: { from: lease.status, to: next, processedAt: now.toISOString() },
         },
       });
+      return true;
     });
+    if (!moved) continue;
 
     transitions[next] = (transitions[next] ?? 0) + 1;
     processed += 1;

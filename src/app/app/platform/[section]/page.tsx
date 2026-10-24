@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AppIcon } from "@/components/icons";
 import { PageHeader, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { hasDatabaseConfiguration } from "@/server/db";
@@ -180,7 +182,25 @@ async function renderSection(section: PlatformSection) {
 
 function Rows({ rows, empty }: { rows: PlatformRow[]; empty: string }) {
   if (rows.length === 0) return <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">{empty}</div>;
-  return <div className="rf-card overflow-hidden">{rows.map((row) => <div key={row.id} className="grid gap-3 border-b border-[var(--border)] p-5 last:border-b-0 md:grid-cols-[1.4fr_.9fr_auto] md:items-center"><div><p className="font-medium">{row.primary}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.secondary}</p></div><span className="text-xs text-[var(--muted)]">{row.meta}</span><div className="md:text-right"><Status>{row.status}</Status></div></div>)}</div>;
+  return (
+    <div className="rf-panel">
+      <ul className="rf-list">
+        {rows.map((row) => {
+          const body = (
+            <>
+              <span className="rf-list-main">
+                <span className="rf-list-title block">{row.primary}</span>
+                <span className="rf-list-meta block">{row.secondary}{row.meta ? ` · ${row.meta}` : ""}</span>
+              </span>
+              <span className="rf-list-aside"><Status>{row.status}</Status></span>
+              {row.href && <AppIcon name="chevron-right" className="rf-chevron" />}
+            </>
+          );
+          return <li key={row.id}>{row.href ? <Link href={row.href} className="rf-list-row">{body}</Link> : <div className="rf-list-row">{body}</div>}</li>;
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function DiagnosticCards({ rows }: { rows: readonly (readonly string[])[] }) {

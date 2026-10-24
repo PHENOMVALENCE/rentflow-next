@@ -43,12 +43,12 @@ export default async function PlatformHome() {
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <section className="rf-card p-5">
           <div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold">Open incidents</h2><p className="text-xs text-[var(--muted)]">Latest platform reliability events</p></div><Link href="/app/platform/incidents" className="text-xs font-medium">View all →</Link></div>
-          <div className="space-y-3">{overview.incidents.map((row) => <div key={row.id} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-3"><div><p className="text-sm font-medium">{row.primary}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.secondary}</p></div><div className="text-right"><Status>{row.status}</Status>{row.meta && <p className="mt-1 text-[11px] text-[var(--muted)]">{row.meta}</p>}</div></div>)}</div>
+          <div className="space-y-3">{overview.incidents.map((row) => <div key={row.id} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-3"><div><p className="text-sm font-medium">{row.href ? <Link href={row.href} className="rf-link">{row.primary}</Link> : row.primary}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.secondary}</p></div><div className="text-right"><Status>{row.status}</Status>{row.meta && <p className="mt-1 text-[11px] text-[var(--muted)]">{row.meta}</p>}</div></div>)}</div>
         </section>
 
         <section className="rf-card p-5">
           <div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold">Organizations</h2><p className="text-xs text-[var(--muted)]">Newest platform workspaces</p></div><Link href="/app/platform/organizations" className="text-xs font-medium">View all →</Link></div>
-          <div className="space-y-3">{overview.organizations.map((row) => <div key={row.id} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-3"><div><p className="text-sm font-medium">{row.primary}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.secondary}</p></div><div className="text-right"><Status>{row.status}</Status>{row.meta && <p className="mt-1 text-[11px] text-[var(--muted)]">{row.meta}</p>}</div></div>)}</div>
+          <div className="space-y-3">{overview.organizations.map((row) => <div key={row.id} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-3"><div><p className="text-sm font-medium">{row.href ? <Link href={row.href} className="rf-link">{row.primary}</Link> : row.primary}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.secondary}</p></div><div className="text-right"><Status>{row.status}</Status>{row.meta && <p className="mt-1 text-[11px] text-[var(--muted)]">{row.meta}</p>}</div></div>)}</div>
         </section>
       </div>
 

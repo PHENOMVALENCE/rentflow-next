@@ -1,34 +1,54 @@
 import Link from "next/link";
+import { PubIcon } from "@/components/icons";
+import { AuthAlert, AuthField, AuthLayout, CodeInput } from "@/components/pub/auth";
 import { loginAction } from "@/server/auth/actions";
 import { hasDatabaseConfiguration } from "@/server/db";
+import { getTranslator } from "@/i18n/server";
+
+export const metadata = { title: "Sign in" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; reset?: string }> }) {
   const query = await searchParams;
   const databaseReady = hasDatabaseConfiguration();
+  const { t } = await getTranslator();
 
   return (
-    <main className="min-h-screen bg-[var(--background)] px-5 py-12">
-      <div className="mx-auto max-w-md">
-        <Link href="/" className="text-xl font-semibold"><span className="text-[var(--brand)]">Rent</span>Flow</Link>
-        <div className="rf-card mt-10 p-6 sm:p-8">
-          <p className="rf-eyebrow">Secure access</p>
-          <h1 className="text-3xl font-semibold">Sign in to RentFlow</h1>
-          <p className="mt-2 text-sm text-[var(--muted-strong)]">Use your phone number and 4-digit account PIN.</p>
+    <AuthLayout>
+      <div className="pub-auth-card">
+        <h1>{t("Sign in")}</h1>
+        <p className="pub-auth-intro">{t("Enter your phone number and PIN.")}</p>
 
-          {query.reset === "1" && <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Your account PIN was reset successfully. Sign in with the new PIN.</div>}
-          {query.error === "invalid" && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">Invalid phone number or PIN.</div>}
-          {query.error === "locked" && <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Too many unsuccessful PIN attempts. Use Forgot PIN to verify the account, or try again after the security window.</div>}
-          {!databaseReady && <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Database authentication is not configured yet. The preview dashboard remains available in demo mode.</div>}
-
-          <form action={loginAction} className="mt-6 space-y-5">
-            <label className="block text-sm font-medium">Phone number<input required type="tel" name="phone" autoComplete="tel" placeholder="0712 345 678" disabled={!databaseReady} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 disabled:bg-slate-50" /></label>
-            <label className="block text-sm font-medium">4-digit PIN<input required type="password" name="pin" inputMode="numeric" autoComplete="current-password" pattern="[0-9]{4}" minLength={4} maxLength={4} disabled={!databaseReady} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 tracking-[0.45em] disabled:bg-slate-50" /></label>
-            {databaseReady ? <button type="submit" className="rf-button rf-button-dark w-full">Sign in</button> : <Link href="/app" className="rf-button rf-button-dark w-full">Open preview dashboard</Link>}
-          </form>
-
-          {databaseReady && <div className="mt-5 flex justify-end"><Link href="/forgot-pin" className="text-sm font-medium">Forgot PIN?</Link></div>}
+        <div className="mt-5 grid gap-3 empty:hidden">
+          {query.reset === "1" && <AuthAlert tone="success">{t("Your account PIN was reset. Sign in with the new PIN.")}</AuthAlert>}
+          {query.error === "invalid" && <AuthAlert tone="error">{t("Invalid phone number or PIN.")}</AuthAlert>}
+          {query.error === "locked" && <AuthAlert tone="error">{t("Too many unsuccessful PIN attempts. Reset your PIN by SMS, or try again after the security window.")}</AuthAlert>}
+          {!databaseReady && <AuthAlert>{t("Database sign-in is not configured yet. The preview dashboard is available in demo mode.")}</AuthAlert>}
         </div>
+
+        {databaseReady ? (
+          <form action={loginAction} className="pub-auth-form">
+            <AuthField id="phone" label={t("Phone number")}>
+              <div className="pub-input-group">
+                <PubIcon name="phone" />
+                <input id="phone" type="tel" inputMode="tel" name="phone" className="pub-input" placeholder="0712 000 000" autoComplete="tel" required />
+              </div>
+            </AuthField>
+            <AuthField id="pin" label={t("PIN")}>
+              <CodeInput id="pin" name="pin" />
+            </AuthField>
+            <button type="submit" className="pub-btn pub-btn-primary pub-btn-lg pub-btn-block">{t("Sign in")}</button>
+          </form>
+        ) : (
+          <div className="pub-auth-form">
+            <Link href="/app" className="pub-btn pub-btn-primary pub-btn-lg pub-btn-block">{t("Open preview dashboard")}</Link>
+          </div>
+        )}
+
+        {databaseReady && (
+          <Link href="/forgot-pin" className="pub-btn pub-btn-ghost pub-btn-block mt-3"><PubIcon name="message" /> {t("Forgot PIN? Get a code by SMS")}</Link>
+        )}
+        <p className="pub-auth-foot">{t("New to RentFlow?")} <Link href="/register" className="pub-link">{t("Create an account")}</Link></p>
       </div>
-    </main>
+    </AuthLayout>
   );
 }

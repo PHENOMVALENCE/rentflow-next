@@ -1,71 +1,269 @@
+"use client";
+
 import Link from "next/link";
-import type { ReactNode } from "react";
-import type { Role } from "@prisma/client";
-import { logoutAction } from "@/server/auth/actions";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AppIcon } from "@/components/icons";
+import { BrandMark } from "@/components/pub/brand";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useI18n } from "@/i18n/client";
+import { avatarTone, initialsOf, isNavItemActive, navigationFor, ROLE_LABELS, type NavGroup, type NavRole } from "@/lib/navigation";
 
-const roleNav: Record<Role, string[]> = {
-  PLATFORM_ADMIN: ["dashboard", "platform", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports", "settings"],
-  LANDLORD: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports", "settings"],
-  PROPERTY_ADMIN: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports"],
-  SUPERVISOR: ["dashboard", "units", "tenants", "receipts", "maintenance", "notices"],
-  TENANT: ["dashboard", "leases", "agreements", "payments", "receipts", "maintenance", "notices"],
-};
-
-const navLabels: Record<string, string> = {
-  "payment-exceptions": "Payment exceptions",
-  "unpaid-terms": "Unpaid terms",
-};
-
-function initials(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "RF";
-}
-
-export function AppShell({
-  children,
-  role,
-  userName,
-  workspaceName,
-  demoMode,
-}: {
+type ShellProps = {
   children: ReactNode;
-  role: Role;
+  role: NavRole;
   userName: string;
   workspaceName: string;
   demoMode: boolean;
-}) {
-  const nav = roleNav[role];
+  logout?: () => Promise<void>;
+  /** Organization name when a platform admin has entered an organization context. */
+  platformContext?: string | null;
+  exitContext?: () => Promise<void>;
+};
+
+export function Avatar({ name, size = "md" }: { name: string; size?: "xs" | "sm" | "md" | "lg" | "xl" }) {
+  return <span className={`rf-avatar rf-avatar-${size} rf-avatar-c${avatarTone(name)}`} aria-hidden="true">{initialsOf(name)}</span>;
+}
+
+function Nav({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathname: string; onNavigate?: () => void }) {
+  const { t } = useI18n();
+  return (
+    <nav className="flex flex-col" aria-label={t("Primary")}>
+      {groups.map((group, index) => (
+        <div key={group.group ?? `group-${index}`} className="rf-nav-section">
+          {group.group && <p className="rf-nav-group">{t(group.group)}</p>}
+          <div className="flex flex-col gap-0.5">
+            {group.items.map((item) => {
+              const active = isNavItemActive(item, pathname);
+              return (
+                <Link
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  title={`${t(item.label)} · ${t(item.hint)}`}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={`rf-nav-link${active ? " rf-nav-active" : ""}`}
+                >
+                  <span className="shrink-0" aria-hidden="true"><AppIcon name={item.icon} /></span>
+                  <span className="rf-nav-copy min-w-0 flex-1 truncate text-left">{t(item.label)}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+/** Authenticated frame (Laravel `layouts/app.blade.php`): collapsible sidebar, top bar, account menu, mobile drawer. */
+export function AppShell({ children, role, userName, workspaceName, demoMode, logout, platformContext, exitContext }: ShellProps) {
+  const pathname = usePathname();
+  const { t } = useI18n();
+  const groups = navigationFor(role, { inOrganization: Boolean(platformContext) });
+  const roleLabel = t(ROLE_LABELS[role]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem("rf-sidebar");
+    } catch {
+      // Storage can be unavailable (private mode); the sidebar simply stays open.
+    }
+    if (stored === "0") {
+      const frame = requestAnimationFrame(() => setSidebarOpen(false));
+      return () => cancelAnimationFrame(frame);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      setNavOpen(false);
+    };
+    const onClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+    };
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = navOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [navOpen]);
+
+  const toggleSidebar = () => {
+    setSidebarOpen((open) => {
+      try {
+        localStorage.setItem("rf-sidebar", open ? "0" : "1");
+      } catch {
+        // Ignore unavailable storage.
+      }
+      return !open;
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] lg:grid lg:grid-cols-[248px_1fr]">
-      <aside className="hidden border-r border-[var(--border)] bg-[var(--sidebar)] p-5 lg:flex lg:flex-col">
-        <Link href="/" className="mb-8 text-xl font-semibold"><span className="text-[var(--brand)]">Rent</span>Flow</Link>
-        <div className="mb-6 rounded-2xl border border-[var(--border)] bg-white p-3">
-          <p className="text-xs text-[var(--muted)]">Workspace</p>
-          <p className="mt-1 font-medium">{workspaceName}</p>
-          <p className="mt-1 text-xs text-[var(--muted)]">{role.toLowerCase().replaceAll("_", " ")}</p>
-        </div>
-        <nav className="space-y-1">
-          {nav.map((item) => (
-            <Link key={item} href={item === "dashboard" ? "/app" : `/app/${item}`} className="block rounded-xl px-3 py-2.5 text-sm text-[var(--muted-strong)] hover:bg-white hover:text-black">{navLabels[item] ?? item.replaceAll("-", " ")}</Link>
-          ))}
-        </nav>
-        <div className="mt-auto space-y-3 text-xs text-[var(--muted)]">
-          <Link href="/app/account" className="block text-[var(--muted-strong)] hover:text-black">Account & security</Link>
-          <p>RentFlow Next · {demoMode ? "Preview" : "Production"}</p>
-          {!demoMode && <form action={logoutAction}><button className="text-left text-[var(--muted-strong)] hover:text-black">Sign out</button></form>}
-        </div>
-      </aside>
-
-      <div>
-        <header className="flex h-16 items-center justify-between border-b border-[var(--border)] bg-white px-5 lg:px-8">
-          <div><p className="text-xs text-[var(--muted)]">Property operations</p><p className="text-sm font-medium">{workspaceName}</p></div>
-          <div className="flex items-center gap-3">
-            <span className={`rf-badge ${demoMode ? "" : "rf-badge-success"}`}>{demoMode ? "Demo data" : "System healthy"}</span>
-            <Link href="/app/account" className="grid h-9 w-9 place-items-center rounded-full bg-black text-sm text-white" title={`${userName} · Account & security`}>{initials(userName)}</Link>
+    <div className="rf-app">
+      <a href="#app-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow-lg">{t("Skip to content")}</a>
+      <div className="flex min-h-screen">
+        <aside className={`rf-sidebar rf-shell-sidebar sticky top-0 z-20 hidden h-screen shrink-0 flex-col overflow-hidden lg:flex ${sidebarOpen ? "" : "rf-sidebar-collapsed"}`}>
+          <div className="flex h-16 shrink-0 items-center gap-3 border-b border-[#e3e8ef] px-5">
+            <BrandMark />
+            <div className="rf-brand-copy min-w-0">
+              <p className="text-[0.9375rem] font-bold leading-tight text-[#0b1b33]">RentFlow</p>
+              <p className="truncate text-xs text-[#51607a]">{t("Rental operations")}</p>
+            </div>
           </div>
-        </header>
-        <main className="p-5 lg:p-8">{children}</main>
+          <div className="flex-1 overflow-y-auto px-3 py-4">
+            <Nav groups={groups} pathname={pathname} />
+          </div>
+          <div className="border-t border-[#e3e8ef] p-3">
+            <button type="button" className="rf-nav-link justify-center" onClick={toggleSidebar} aria-expanded={sidebarOpen} aria-label={sidebarOpen ? t("Collapse sidebar") : t("Expand sidebar")}>
+              <AppIcon name="menu" />
+            </button>
+          </div>
+        </aside>
+
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+          <header className="rf-topbar sticky top-0 z-30">
+            <div className="flex h-16 items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
+              <button type="button" className="rf-topbar-control lg:hidden" onClick={() => setNavOpen(true)} aria-label={t("Open menu")}>
+                <AppIcon name="menu" />
+              </button>
+              <Link href="/app" className="flex min-w-0 items-center gap-2 lg:hidden">
+                <BrandMark className="h-8 w-8" />
+                <span className="hidden text-[0.9375rem] font-bold text-[#0b1b33] min-[440px]:inline">RentFlow</span>
+              </Link>
+
+              {role === "PLATFORM_ADMIN" && !platformContext ? (
+                <form method="get" action="/app/platform/search" className="rf-search hidden flex-1 md:flex md:max-w-md">
+                  <span className="text-neutral-500" aria-hidden="true"><AppIcon name="search" className="h-4 w-4" /></span>
+                  <input type="search" name="q" placeholder={t("Organizations, users, payments...")} aria-label={t("Search the platform")} className="w-full min-w-0 border-0 bg-transparent text-sm text-neutral-800 outline-none placeholder:text-neutral-500" />
+                </form>
+              ) : (
+                <p className="hidden min-w-0 items-center gap-2 text-sm text-[#51607a] md:flex">
+                  <span className="text-primary-600" aria-hidden="true"><AppIcon name="building" className="h-4 w-4" /></span>
+                  <span className="sr-only">{t("Organization")}:</span>
+                  <span className="truncate font-medium text-[#24324a]">{workspaceName}</span>
+                </p>
+              )}
+
+              <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+                {demoMode && <span className="rf-status rf-status-warning hidden sm:inline-flex" title="DATABASE_URL is not configured">{t("Demo data")}</span>}
+                <LanguageSwitcher />
+                <Link href="/app/notices" className="rf-topbar-control" aria-label={t("Notices")}>
+                  <AppIcon name="bell" />
+                </Link>
+
+                <div ref={menuRef} className="relative shrink-0">
+                  <button type="button" className="rf-account-trigger" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-haspopup="menu" aria-label={t("Account menu")}>
+                    <Avatar name={userName} size="sm" />
+                    <span className="rf-account-trigger-copy">
+                      <span className="rf-account-trigger-name">{userName}</span>
+                      <span className="rf-account-trigger-role">{roleLabel}</span>
+                    </span>
+                    <span className={`rf-account-trigger-chevron${menuOpen ? " rotate-180" : ""}`} aria-hidden="true">
+                      <AppIcon name="chevron" className="h-4 w-4" />
+                    </span>
+                  </button>
+                  {menuOpen && (
+                    <div className="rf-menu rf-account-menu" role="menu">
+                      <div className="rf-account-menu-head">
+                        <Avatar name={userName} size="md" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-[#0b1b33]">{userName}</p>
+                          <p className="mt-0.5 truncate text-xs font-medium text-[#51607a]">{roleLabel}</p>
+                          <p className="mt-0.5 truncate text-xs text-[#51607a]">{workspaceName}</p>
+                        </div>
+                      </div>
+                      <div className="pt-1.5">
+                        <Link href="/app/profile" className="rf-menu-item" role="menuitem" onClick={() => setMenuOpen(false)}>
+                          <span className="text-[#51607a]" aria-hidden="true"><AppIcon name="user" className="h-4 w-4" /></span>
+                          {t("Profile")}
+                        </Link>
+                        <Link href="/app/account" className="rf-menu-item" role="menuitem" onClick={() => setMenuOpen(false)}>
+                          <span className="text-[#51607a]" aria-hidden="true"><AppIcon name="lock" className="h-4 w-4" /></span>
+                          {t("Account & security")}
+                        </Link>
+                        {logout && (
+                          <form action={logout}>
+                            <button type="submit" className="rf-menu-item" role="menuitem">
+                              <span className="text-[#51607a]" aria-hidden="true"><AppIcon name="logout" className="h-4 w-4" /></span>
+                              {t("Sign out")}
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main id="app-content" tabIndex={-1} className="relative flex-1 overflow-x-hidden px-4 py-5 outline-none sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+            <div className="rf-page relative mx-auto max-w-[1440px]">
+              {platformContext && (
+                <div className="rf-context-banner" role="status">
+                  <div>
+                    <p className="caption font-medium uppercase tracking-[0.12em] text-neutral-500">{t("SYSTEM ADMIN MODE")}</p>
+                    <p className="mt-1 text-sm text-neutral-900">{t("You are viewing :name. This is not an organization administrator session.", { name: platformContext })}</p>
+                  </div>
+                  {exitContext && (
+                    <form action={exitContext}>
+                      <button type="submit" className="rf-btn-secondary">{t("Exit organization context")}</button>
+                    </form>
+                  )}
+                </div>
+              )}
+              {children}
+            </div>
+          </main>
+
+          <footer className="rf-footer px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <p className="text-xs text-[#51607a]">© {new Date().getFullYear()} RentFlow. {t("One lease state. One payment trail.")}</p>
+              <Link href="/" className="text-xs font-medium text-[#51607a] transition-colors hover:text-[#0b1b33]">{t("Public listings")}</Link>
+            </div>
+          </footer>
+        </div>
       </div>
+
+      {navOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label={t("Menu")}>
+          <div className="absolute inset-0 bg-[#0b1b33]/40" onClick={() => setNavOpen(false)} />
+          <aside className="rf-shell-sidebar absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col">
+            <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#e3e8ef] px-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <BrandMark />
+                <div className="min-w-0">
+                  <p className="text-[0.9375rem] font-bold leading-tight text-[#0b1b33]">RentFlow</p>
+                  <p className="truncate text-xs text-[#51607a]">{workspaceName}</p>
+                </div>
+              </div>
+              <button type="button" className="rf-topbar-control" onClick={() => setNavOpen(false)} aria-label={t("Close menu")}>
+                <AppIcon name="close" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 py-4">
+              <Nav groups={groups} pathname={pathname} onNavigate={() => setNavOpen(false)} />
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,10 @@
 import Link from "next/link";
+import { PubIcon } from "@/components/icons";
+import { AuthAlert, AuthField, AuthLayout, CodeInput } from "@/components/pub/auth";
 import { requestRegistrationOtp } from "@/server/auth/registration-actions";
+import { getTranslator } from "@/i18n/server";
+
+export const metadata = { title: "Create an account" };
 
 const errorMessages: Record<string, string> = {
   invalid: "Check the form details and try again.",
@@ -10,24 +15,52 @@ const errorMessages: Record<string, string> = {
 
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ error?: string; role?: string }> }) {
   const { error, role } = await searchParams;
-  const defaultRole = role === "LANDLORD" ? "LANDLORD" : "TENANT";
+  const { t } = await getTranslator();
+  // Laravel links landlords with role=ORGANIZATION_ADMIN; Next calls the same account LANDLORD.
+  const defaultRole = role === "LANDLORD" || role === "ORGANIZATION_ADMIN" ? "LANDLORD" : "TENANT";
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl items-center px-5 py-12">
-      <div className="grid w-full gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
-        <section className="pt-6"><Link href="/" className="text-2xl font-semibold"><span className="text-[var(--brand)]">Rent</span>Flow</Link><p className="mt-8 text-sm font-medium uppercase tracking-[.18em] text-[var(--muted)]">Create account</p><h1 className="mt-3 max-w-lg text-4xl font-semibold tracking-tight">Start as a tenant or property owner.</h1><p className="mt-4 max-w-lg text-[var(--muted-strong)]">Your phone is verified by OTP before the account is created. A four-digit PIN is used for sign-in.</p></section>
-        <section className="rf-card p-6 lg:p-8">
-          {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{errorMessages[error] ?? "Registration could not continue."}</div>}
-          <form action={requestRegistrationOtp} className="space-y-5">
-            <div className="grid gap-5 md:grid-cols-2"><label className="text-sm font-medium">Full name<input name="name" required minLength={2} maxLength={255} className="mt-2 w-full rounded-xl border border-[var(--border)] px-4 py-3" /></label><label className="text-sm font-medium">Phone<input name="phone" required inputMode="tel" placeholder="0712 000 000" className="mt-2 w-full rounded-xl border border-[var(--border)] px-4 py-3" /></label></div>
-            <label className="block text-sm font-medium">Email <span className="font-normal text-[var(--muted)]">(optional)</span><input name="email" type="email" maxLength={255} className="mt-2 w-full rounded-xl border border-[var(--border)] px-4 py-3" /></label>
-            <div className="grid gap-5 md:grid-cols-2"><label className="text-sm font-medium">4-digit PIN<input name="pin" required type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} className="mt-2 w-full rounded-xl border border-[var(--border)] px-4 py-3" /></label><label className="text-sm font-medium">Confirm PIN<input name="pinConfirmation" required type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} className="mt-2 w-full rounded-xl border border-[var(--border)] px-4 py-3" /></label></div>
-            <fieldset><legend className="text-sm font-medium">Account type</legend><div className="mt-2 grid gap-3 sm:grid-cols-2"><label className="rounded-xl border border-[var(--border)] p-4 text-sm"><input type="radio" name="role" value="TENANT" defaultChecked={defaultRole === "TENANT"} className="mr-2" />Tenant</label><label className="rounded-xl border border-[var(--border)] p-4 text-sm"><input type="radio" name="role" value="LANDLORD" defaultChecked={defaultRole === "LANDLORD"} className="mr-2" />Property owner / landlord</label></div></fieldset>
-            <label className="block text-sm font-medium">Organization / portfolio name <span className="font-normal text-[var(--muted)]">(required for landlords)</span><input name="organizationName" maxLength={255} className="mt-2 w-full rounded-xl border border-[var(--border)] px-4 py-3" /></label>
-            <button type="submit" className="rf-button rf-button-dark w-full">Send verification code</button>
-          </form>
-          <p className="mt-6 text-center text-sm text-[var(--muted-strong)]">Already registered? <Link href="/login" className="font-medium text-black">Sign in</Link></p>
-        </section>
+    <AuthLayout>
+      <div className="pub-auth-card">
+        <h1>{t("Create an account")}</h1>
+        <p className="pub-auth-intro">{t("Everyone has their own login. Landlords open a new organization; tenants connect to their landlord after signing a lease.")}</p>
+
+        {error && <div className="mt-5"><AuthAlert tone="error">{errorMessages[error] ?? "Registration could not continue."}</AuthAlert></div>}
+
+        <form action={requestRegistrationOtp} className="pub-auth-form">
+          <fieldset className="pub-field m-0 border-0 p-0">
+            <legend className="pub-label mb-2">{t("I am")}</legend>
+            <div className="grid gap-2">
+              <label className="pub-choice"><input type="radio" name="role" value="TENANT" defaultChecked={defaultRole === "TENANT"} /> <span>{t("A tenant renting a space")}</span></label>
+              <label className="pub-choice"><input type="radio" name="role" value="LANDLORD" defaultChecked={defaultRole === "LANDLORD"} /> <span>{t("A landlord or property team")}</span></label>
+            </div>
+          </fieldset>
+          <div className="rf-landlord-only">
+          <AuthField id="organizationName" label={t("Organization name")} hint={t("This creates a new, empty organization for you; it doesn't give access to any other landlord.")}>
+            <input id="organizationName" name="organizationName" maxLength={255} className="pub-input" aria-describedby="organizationName-hint" />
+          </AuthField>
+          </div>
+          <AuthField id="name" label={t("Full name")}>
+            <input id="name" name="name" required minLength={2} maxLength={255} autoComplete="name" className="pub-input" />
+          </AuthField>
+          <AuthField id="phone" label={t("Phone number")} hint={t("We send a 4-digit code to verify it.")}>
+            <div className="pub-input-group">
+              <PubIcon name="phone" />
+              <input id="phone" name="phone" type="tel" inputMode="tel" required placeholder="0712 000 000" autoComplete="tel" className="pub-input" aria-describedby="phone-hint" />
+            </div>
+          </AuthField>
+          <AuthField id="email" label={t("Email")} optional={t("(optional)")}>
+            <input id="email" name="email" type="email" maxLength={255} autoComplete="email" className="pub-input" />
+          </AuthField>
+          <div className="pub-form-grid pub-form-grid-2">
+            <AuthField id="pin" label={t("Choose a PIN")}><CodeInput id="pin" name="pin" autoComplete="new-password" /></AuthField>
+            <AuthField id="pinConfirmation" label={t("Confirm PIN")}><CodeInput id="pinConfirmation" name="pinConfirmation" autoComplete="new-password" /></AuthField>
+          </div>
+          <button type="submit" className="pub-btn pub-btn-primary pub-btn-lg pub-btn-block">{t("Send verification code")}</button>
+        </form>
+
+        <p className="pub-auth-foot">{t("Already registered?")} <Link href="/login" className="pub-link">{t("Sign in")}</Link></p>
       </div>
-    </main>
+    </AuthLayout>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { hasDatabaseConfiguration } from "@/server/db";
@@ -23,7 +24,7 @@ export default async function PlatformIncidentsPage({ searchParams }: { searchPa
         {incidents.length === 0 ? <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No incidents recorded.</div> : incidents.map((incident) => (
           <article key={incident.id} className="rf-card p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{incident.primary}</h2><Status>{incident.status}</Status></div><p className="mt-2 text-sm text-[var(--muted-strong)]">{incident.secondary}</p><p className="mt-1 text-xs text-[var(--muted)]">Severity: {incident.meta}</p></div>
+              <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{incident.href ? <Link href={incident.href} className="rf-link">{incident.primary}</Link> : incident.primary}</h2><Status>{incident.status}</Status></div><p className="mt-2 text-sm text-[var(--muted-strong)]">{incident.secondary}</p><p className="mt-1 text-xs text-[var(--muted)]">Severity: {incident.meta}</p></div>
 
               {persistenceReady && incident.status === "OPEN" && (
                 <form action={acknowledgePlatformIncidentAction}>

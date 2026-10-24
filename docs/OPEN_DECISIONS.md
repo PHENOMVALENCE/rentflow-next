@@ -1,10 +1,17 @@
 # Open Decisions
 
-- Production PostgreSQL provider/connection string.
-- Final production authentication provider and account recovery flow.
-- Production Snippe credentials/webhook contract.
-- SMS/WhatsApp provider credentials and channel rollout.
-- Private document storage provider.
-- Final custom production domain.
+Each item blocks a roadmap milestone. Record the outcome as an ADR in `DECISIONS.md`.
 
-Until resolved, adapters remain environment-driven and deployable demo functionality must not fabricate external-provider success.
+| Decision | Blocks |
+|---|---|
+| Development and production PostgreSQL provider/connection | M1, M5 |
+| Private object storage provider | M5 (agreements, documents, listing media, logos) |
+| Snippe production credentials and webhook contract | M5 |
+| Notification SMS provider (Briq is OTP-only today) | G4, M5 |
+| Email provider for inquiry/platform/tenant-copy emails | G4 |
+| WhatsApp rollout and template approval | G4, G10 |
+| Backups: provider-managed snapshots vs ported backup commands | G9 |
+| Whether staff/platform screens must be in Kiswahili at launch (public, sign-in and homes already are) | G8 |
+| Final custom production domain | M6 |
+
+Until resolved, adapters remain environment-driven and demo functionality must not fabricate external-provider success.

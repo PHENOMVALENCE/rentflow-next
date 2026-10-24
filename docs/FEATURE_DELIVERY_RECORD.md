@@ -1,16 +1,18 @@
 # Feature Delivery Record
 
+**Last reviewed:** 24 October 2026. Milestones and gaps: `ROADMAP.md`.
+
 This file distinguishes **implemented in code**, **demoable without infrastructure**, and **production-backed** capabilities. A feature is not production-complete merely because its code path exists.
 
 | Capability | UI/read path | Domain/write path | Persistence-ready | External dependency | Current status |
 |---|---:|---:|---:|---|---|
-| Public home/listings/detail | Yes | Yes | Yes | Private media storage for images | Occupancy-safe repository reads + gallery rendering; demo fallback when DB absent |
-| Public property inquiries | Yes | Yes | Yes | None | Public intake + operator qualification/prospect conversion implemented |
-| Application shell | Yes | N/A | Yes | None | Role-aware; authenticated when DB enabled |
+| Public home/listings/detail | Yes | Yes | Yes | Private media storage for images | Laravel discovery page ported (filters, sort, cards); detail with gallery mosaic and inline enquiry; demo fallback when DB absent. Quick view, lightbox, virtual tour missing (G6) |
+| Public property inquiries | Yes | Yes | Yes | Email provider (optional) | Inline intake on listing page + operator qualification/prospect conversion; no inquiry email (G4) |
+| Application shell | Yes | N/A | Yes | None | Laravel sidebar/top bar/account menu ported; role navigation unit-tested; authenticated when DB enabled |
 | Authentication/RBAC | Yes | Yes | Yes | `DATABASE_URL`, `AUTH_SECRET` | Phone + 4-digit PIN sign-in, server RBAC, credential-bound session invalidation, throttling and scoped office reset implemented; dedicated Prisma PIN columns still pending migration |
 | Forgot PIN / identity OTP | Yes | Yes | Yes | Briq credentials | Signed short-lived recovery state + Briq request/resend/verify implemented; not production-enabled without credentials |
 | Account PIN management | Yes | Yes | Yes | PostgreSQL | Self-service change PIN and tenant/supervisor office reset implemented with audit evidence |
-| Portfolio dashboard | Yes | Yes | Yes | PostgreSQL | Portfolio, supervisor and tenant-specific read models implemented |
+| Dashboards and role homes | Yes | N/A | Yes | PostgreSQL | Staff dashboard plus tenant, supervisor and pending homes (Laravel parity) with demo fixtures; platform admins land on the platform console |
 | Platform operations console | Yes | Partial | Yes | PostgreSQL | Organizations/users/search/activity/payments/reconciliation/health/integrations/security/integrity/analytics plus OPEN→ACKNOWLEDGED→RESOLVED incident actions implemented |
 | Properties/units | Yes | Yes | Yes | PostgreSQL | Read models + scoped creation forms implemented |
 | Tenants | Yes | Yes | Yes | PostgreSQL | Scoped read/detail models, profile editing, minimized identity fields and attachment-request workflow implemented |
@@ -24,9 +26,9 @@ This file distinguishes **implemented in code**, **demoable without infrastructu
 | Supervisor assignments/invites | Yes | Yes | Yes | Optional delivery adapter | Invite creation/acceptance, assignment/unassignment and supervisor office PIN reset UI implemented; invite link delivery remains provider-dependent |
 | Maintenance workflow | Yes | Yes | Yes | PostgreSQL | Creation, strict transitions, actor-scoped history and audit implemented |
 | Safety notices | Yes | Yes | Yes | PostgreSQL | Publish, actor-scoped detail, acknowledgement evidence and audit implemented |
-| Community | Yes | Yes | Yes | PostgreSQL | Property eligibility, membership, posting, reporting and moderation implemented |
+| Community | Yes | Yes | Yes | PostgreSQL | Index (`/app/community`), property eligibility, membership, posting, reporting and moderation implemented |
 | Inquiry/prospect pipeline | Yes | Yes | Yes | PostgreSQL | Queue, status workflow, qualification and prospect conversion implemented |
-| Reports/audit | Yes | Yes | Yes | PostgreSQL | Operational metrics + chronological audit viewer implemented |
+| Reports/audit | Yes | Yes | Yes | PostgreSQL | Catalog report runners with scoped CSV export, metrics and audit viewer. Report queries are typed but have not run against PostgreSQL |
 | Geography/import | Yes | Yes | Yes | CSV reference source | Platform-admin bounded CSV import with per-row success/failure evidence implemented; schema normalization follow-up remains |
 | Notifications | Partial | Partial | Yes | Delivery adapters | In-app lifecycle records implemented; production external delivery orchestration remains incomplete |
 | Briq identity OTP | Yes | Yes | Yes | `BRIQ_API_KEY` | Adapter + Forgot PIN flow implemented; production credentials pending |
@@ -36,8 +38,12 @@ This file distinguishes **implemented in code**, **demoable without infrastructu
 | Lease document acknowledgement | Yes | Yes | Yes | PostgreSQL/storage | Acknowledgement/access workflow implemented; actual document retrieval requires configured private storage |
 | Production bootstrap | N/A | Yes | Yes | PostgreSQL | Environment-driven organization/admin seed now uses normalized phone + 4-digit PIN |
 | Prisma migrations | N/A | N/A | Schema exists | Database/local Prisma environment | Initial migration and schema parity migrations still pending generation/deploy; see `SCHEMA_PARITY_GAPS.md` |
-| Health endpoint | Yes | N/A | N/A | None | Working |
-| CI/build validation | N/A | N/A | N/A | GitHub/Vercel | Quality workflow exists. Current branch Vercel validation is infrastructure-blocked by build-rate limiting; do not interpret that as a successful or failed compile |
+| Health endpoint | Yes | N/A | N/A | None | `/api/health` and `/api/health/readiness` |
+| Lease reminders | Yes | Yes | Yes | `CRON_SECRET`; SMS provider for outbound | Daily idempotent in-app reminders; SMS delivery waits on G4 |
+| Platform organization context | Yes | Yes | Yes | PostgreSQL | Audited enter/exit; organization pages scope to the chosen organization |
+| English/Kiswahili | Yes | N/A | N/A | None | Cookie-based switcher; Laravel catalog imported; main surfaces translated, staff/platform screens pending (G8) |
+| Backups | No | No | N/A | Database provider | Not implemented (G9) |
+| CI/build validation | N/A | N/A | N/A | GitHub | CI runs typecheck, lint, test and build. Vercel Git builds are disabled (ADR-N007) |
 
 ## Infrastructure gate
 

@@ -24,8 +24,11 @@ Browser
 ### `src/app`
 Routing and composition only. Pages should not contain payment reconciliation, lease-transition or authorization rules.
 
-### `src/features`
-Feature-level UI, actions and queries. Examples: properties, leases, payments, maintenance and listings.
+### Feature code (`src/server/rentflow`)
+There is no separate `src/features` folder. Each feature has a read model (`*-read-model.ts`, scoped queries for pages) and server actions (`*-actions.ts`, authorized mutations) in `src/server/rentflow`. Pages in `src/app` compose them.
+
+### `src/components`
+Shared presentation. Class names follow the Laravel Blade components (ADR-N006).
 
 ### `src/domain`
 Pure TypeScript domain logic. Lease lifecycle, availability, payment matching, supervisor resolution and other critical state rules belong here and should be independently testable.
@@ -107,7 +110,7 @@ Payment flow:
 
 Use responsive, mobile-first layouts. Server Components are default for data-heavy pages. Client Components are reserved for interactive state that genuinely requires the browser.
 
-The existing Laravel UI is a parity reference, but componentization should be improved rather than mechanically translating Blade/Livewire structure.
+The Laravel UI is the visual source of truth (ADR-N006): stylesheets are ported and React components reuse Blade class names. Component boundaries may be improved, but markup classes and states should match Laravel.
 
 ## Testing gates
 

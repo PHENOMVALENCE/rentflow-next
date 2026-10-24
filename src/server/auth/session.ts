@@ -79,7 +79,10 @@ export async function clearSession() {
 
 export async function getSession(): Promise<SessionPayload | null> {
   if (!hasDatabaseConfiguration()) {
-    return { userId: "demo-user", organizationId: null, role: "PLATFORM_ADMIN", exp: Number.MAX_SAFE_INTEGER };
+    // Demo mode only (no database): DEMO_ROLE lets reviewers preview each role's screens with synthetic data.
+    const demoRoles: Role[] = ["PLATFORM_ADMIN", "LANDLORD", "PROPERTY_ADMIN", "SUPERVISOR", "TENANT"];
+    const role = demoRoles.find((value) => value === process.env.DEMO_ROLE) ?? "PLATFORM_ADMIN";
+    return { userId: "demo-user", organizationId: null, role, exp: Number.MAX_SAFE_INTEGER };
   }
 
   const jar = await cookies();

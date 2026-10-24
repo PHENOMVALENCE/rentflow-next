@@ -5,17 +5,18 @@ RentFlow Next is a parity migration of `PHENOMVALENCE/RentFlow` from Laravel to 
 ## Read order
 
 1. `PROJECT.md`
-2. `docs/README.md`
-3. `docs/PRODUCT_REQUIREMENTS.md`
-4. `docs/SRS.md`
-5. `docs/DOMAIN_MODEL.md`
-6. `docs/ARCHITECTURE.md`
-7. `docs/DATABASE_SCHEMA.md`
-8. `docs/DESIGN_SYSTEM.md`
-9. `docs/UI_UX_DESIGN.md`
-10. `docs/SECURITY.md`
-11. `docs/TESTING.md`
-12. `docs/PARITY_MATRIX.md`
+2. `docs/ROADMAP.md`
+3. `docs/README.md`
+4. `docs/PRODUCT_REQUIREMENTS.md`
+5. `docs/SRS.md`
+6. `docs/DOMAIN_MODEL.md`
+7. `docs/ARCHITECTURE.md`
+8. `docs/DATABASE_SCHEMA.md`
+9. `docs/DESIGN_SYSTEM.md`
+10. `docs/UI_UX_DESIGN.md`
+11. `docs/SECURITY.md`
+12. `docs/TESTING.md`
+13. `docs/PARITY_MATRIX.md`
 
 ## Non-negotiable invariants
 
@@ -40,8 +41,18 @@ RentFlow Next is a parity migration of `PHENOMVALENCE/RentFlow` from Laravel to 
 - Money uses integer minor units or database Decimal; never authoritative floating point.
 - Every protected action re-checks authorization server-side.
 - Critical state transitions require tests.
-- Update `docs/PARITY_MATRIX.md` as Laravel behavior is migrated.
+- Update `docs/PARITY_MATRIX.md` as Laravel behavior is migrated, and `docs/ROADMAP.md` when a gap or milestone changes.
 
 ## Delivery discipline
 
 Prefer small conventional commits. A feature is not complete until UI, domain rules, authorization, tests and relevant docs are updated.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

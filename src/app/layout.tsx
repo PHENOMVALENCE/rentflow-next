@@ -1,18 +1,36 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import "@fontsource/ibm-plex-sans/latin-400.css";
+import "@fontsource/ibm-plex-sans/latin-500.css";
+import "@fontsource/ibm-plex-sans/latin-600.css";
+import "@fontsource/ibm-plex-sans/latin-700.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-500.css";
 import "./globals.css";
+import { I18nProvider } from "@/i18n/client";
+import { clientPhrases } from "@/i18n/client-phrases";
+import { clientCatalog, getLocale } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: {
-    default: "RentFlow",
+    default: "RentFlow - available rentals in Tanzania",
     template: "%s | RentFlow",
   },
-  description: "Property and rental operations platform.",
+  description: "Discover apartments, shops and offices currently available across Tanzania, and enquire directly with the property team.",
+  icons: { icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/favicon.ico" }] },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export const viewport: Viewport = {
+  themeColor: "#0050b3",
+  viewportFit: "cover",
+};
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang={locale}>
+      <body className="min-h-screen bg-canvas font-sans text-neutral-800 antialiased">
+        <I18nProvider locale={locale} catalog={clientCatalog(locale, clientPhrases())}>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

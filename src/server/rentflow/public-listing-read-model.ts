@@ -45,6 +45,9 @@ export async function getPublicListings(): Promise<Listing[]> {
     description: listing.description,
     features: [],
     images: listing.images,
+    unitType: listing.unit.type,
+    propertyType: listing.unit.property.type,
+    region: listing.unit.property.region,
   }));
 }
 

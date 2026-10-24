@@ -1,39 +1,47 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PubIcon } from "@/components/icons";
+import { AuthAlert, AuthField, AuthLayout, CodeInput } from "@/components/pub/auth";
 import { resendPinResetOtpAction, verifyPinResetAction } from "@/server/auth/pin-recovery-actions";
 import { getPinRecoveryState } from "@/server/auth/pin-recovery";
 import { maskTanzaniaPhone } from "@/server/auth/phone";
+import { getTranslator } from "@/i18n/server";
+
+export const metadata = { title: "Verify and reset PIN" };
 
 export default async function VerifyPinResetPage({ searchParams }: { searchParams: Promise<{ error?: string; remaining?: string; resent?: string }> }) {
   const recovery = await getPinRecoveryState();
   if (!recovery) redirect("/forgot-pin?error=expired");
   const query = await searchParams;
+  const { t } = await getTranslator();
 
   return (
-    <main className="min-h-screen bg-[var(--background)] px-5 py-12">
-      <div className="mx-auto max-w-md">
-        <Link href="/" className="text-xl font-semibold"><span className="text-[var(--brand)]">Rent</span>Flow</Link>
-        <div className="rf-card mt-10 p-6 sm:p-8">
-          <p className="rf-eyebrow">Verify identity</p>
-          <h1 className="text-3xl font-semibold">Choose a new PIN</h1>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted-strong)]">Enter the 4-digit code sent to {maskTanzaniaPhone(recovery.phone)}, then choose a new 4-digit account PIN.</p>
+    <AuthLayout>
+      <div className="pub-auth-card">
+        <h1>{t("Choose a new PIN")}</h1>
+        <p className="pub-auth-intro">Enter the 4-digit code sent to {maskTanzaniaPhone(recovery.phone)}. Codes expire after 10 minutes.</p>
 
-          {query.resent === "1" && <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">A new verification code was requested.</div>}
-          {query.error === "invalid" && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">Check the code and make sure both PIN fields match.</div>}
-          {query.error === "code" && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">The verification code was not accepted.{query.remaining ? ` ${query.remaining} attempt(s) remaining.` : ""}</div>}
-          {query.error === "unavailable" && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">SMS verification is temporarily unavailable. Try again later.</div>}
-
-          <form action={verifyPinResetAction} className="mt-6 space-y-5">
-            <label className="block text-sm font-medium">Verification code<input required name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4}" minLength={4} maxLength={4} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 tracking-[0.45em]" /></label>
-            <label className="block text-sm font-medium">New 4-digit PIN<input required type="password" name="pin" inputMode="numeric" autoComplete="new-password" pattern="[0-9]{4}" minLength={4} maxLength={4} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 tracking-[0.45em]" /></label>
-            <label className="block text-sm font-medium">Confirm PIN<input required type="password" name="confirmPin" inputMode="numeric" autoComplete="new-password" pattern="[0-9]{4}" minLength={4} maxLength={4} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 tracking-[0.45em]" /></label>
-            <button type="submit" className="rf-button rf-button-dark w-full">Reset PIN</button>
-          </form>
-
-          <form action={resendPinResetOtpAction} className="mt-4"><button type="submit" className="rf-button rf-button-light w-full">Resend code</button></form>
-          <div className="mt-5"><Link href="/forgot-pin" className="text-sm font-medium">Use a different phone number</Link></div>
+        <div className="mt-5 grid gap-3 empty:hidden">
+          {query.resent === "1" && <AuthAlert tone="success">{t("A new code was requested.")}</AuthAlert>}
+          {query.error === "invalid" && <AuthAlert tone="error">{t("Check the code and make sure both PIN fields match.")}</AuthAlert>}
+          {query.error === "code" && <AuthAlert tone="error">The code was not accepted.{query.remaining ? ` ${query.remaining} attempt(s) remaining.` : ""}</AuthAlert>}
+          {query.error === "unavailable" && <AuthAlert tone="error">{t("SMS verification is temporarily unavailable. Try again later.")}</AuthAlert>}
         </div>
+
+        <form action={verifyPinResetAction} className="pub-auth-form">
+          <AuthField id="code" label={t("Code from SMS")}><CodeInput id="code" name="code" kind="otp" /></AuthField>
+          <div className="pub-form-grid pub-form-grid-2">
+            <AuthField id="pin" label={t("New PIN")}><CodeInput id="pin" name="pin" autoComplete="new-password" /></AuthField>
+            <AuthField id="confirmPin" label={t("Confirm new PIN")}><CodeInput id="confirmPin" name="confirmPin" autoComplete="new-password" /></AuthField>
+          </div>
+          <button type="submit" className="pub-btn pub-btn-primary pub-btn-lg pub-btn-block">{t("Save PIN")}</button>
+        </form>
+        <form action={resendPinResetOtpAction} className="mt-3">
+          <button type="submit" className="pub-btn pub-btn-ghost pub-btn-block"><PubIcon name="refresh" /> {t("Send a new code")}</button>
+        </form>
+
+        <p className="pub-auth-foot"><Link href="/forgot-pin" className="pub-link">{t("Use a different phone number")}</Link></p>
       </div>
-    </main>
+    </AuthLayout>
   );
 }

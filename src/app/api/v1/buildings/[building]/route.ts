@@ -1,0 +1,7 @@
+import { z } from "zod";
+import { db } from "@/server/db";
+import { apiError, apiSession, isApiError, jsonData } from "@/server/api/v1";
+
+async function scoped(id:string,s:Exclude<Awaited<ReturnType<typeof apiSession>>,Response>){return db.building.findFirst({where:{id,...(s.role==="SUPERVISOR"?{property:{supervisorAssignments:{some:{userId:s.userId,active:true}}}}:s.role!=="PLATFORM_ADMIN"&&s.organizationId?{property:{organizationId:s.organizationId}}:{})},include:{property:true,units:true}});}
+export async function GET(_r:Request,{params}:{params:Promise<{building:string}>}){const s=await apiSession(["PLATFORM_ADMIN","LANDLORD","PROPERTY_ADMIN","SUPERVISOR"]);if(isApiError(s))return s;const {building:id}=await params;const row=await scoped(id,s);return row?jsonData({data:row}):jsonData({message:"Not found"},{status:404});}
+export async function PATCH(request:Request,{params}:{params:Promise<{building:string}>}){const s=await apiSession(["PLATFORM_ADMIN","LANDLORD","PROPERTY_ADMIN"]);if(isApiError(s))return s;const {building:id}=await params;const row=await scoped(id,s);if(!row)return jsonData({message:"Not found"},{status:404});try{const input=z.object({name:z.string().trim().min(1).max(160).optional(),floors:z.number().int().min(1).max(200).nullable().optional()}).parse(await request.json());return jsonData({data:await db.building.update({where:{id},data:input})});}catch(error){return apiError(error);}}

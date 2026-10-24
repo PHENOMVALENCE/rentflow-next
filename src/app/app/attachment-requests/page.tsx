@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { NeedsOrganization } from "@/components/needs-organization";
 import { PageHeader, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
@@ -8,7 +8,7 @@ const date = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", 
 
 export default async function AttachmentRequestsPage() {
   const session = await requireSession(["LANDLORD", "PROPERTY_ADMIN", "PLATFORM_ADMIN"]);
-  if (!session.organizationId) notFound();
+  if (!session.organizationId) return <NeedsOrganization session={session} title="Attachment requests" />;
 
   const tenants = hasDatabaseConfiguration() ? await db.tenant.findMany({
     where: { organizationId: session.organizationId },
