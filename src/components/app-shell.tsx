@@ -4,14 +4,17 @@ import type { Role } from "@prisma/client";
 import { logoutAction } from "@/server/auth/actions";
 
 const roleNav: Record<Role, string[]> = {
-  PLATFORM_ADMIN: ["dashboard", "platform", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports", "settings"],
-  LANDLORD: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports", "settings"],
-  PROPERTY_ADMIN: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "leases", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "reports"],
+  PLATFORM_ADMIN: ["dashboard", "platform", "properties", "units", "listings", "inquiries", "tenants", "attachment-requests", "leases", "standard-leases", "agreements", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "operational-documents", "organization", "reports", "settings"],
+  LANDLORD: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "attachment-requests", "leases", "standard-leases", "agreements", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "operational-documents", "organization", "reports", "settings"],
+  PROPERTY_ADMIN: ["dashboard", "properties", "units", "listings", "inquiries", "tenants", "attachment-requests", "leases", "standard-leases", "agreements", "payments", "receipts", "payment-exceptions", "unpaid-terms", "supervisors", "maintenance", "notices", "operational-documents", "organization", "reports"],
   SUPERVISOR: ["dashboard", "units", "tenants", "receipts", "maintenance", "notices"],
   TENANT: ["dashboard", "leases", "agreements", "payments", "receipts", "maintenance", "notices"],
 };
 
 const navLabels: Record<string, string> = {
+  "attachment-requests": "Attachment requests",
+  "standard-leases": "Standard leases",
+  "operational-documents": "Operational documents",
   "payment-exceptions": "Payment exceptions",
   "unpaid-terms": "Unpaid terms",
 };
