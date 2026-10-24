@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PubIcon } from "@/components/icons";
 import type { Listing } from "@/lib/demo-data";
 import { hasActiveFilters, listingQueryHref, PROPERTY_TYPE_LABELS, SORT_LABELS, UNIT_TYPE_LABELS, type ListingQuery } from "@/lib/listing-filters";
-import { PropertyCard } from "./property-card";
+import { ListingGrid } from "./listing-grid";
 import { PubState } from "./sections";
 import { SortSelect } from "./sort-select";
 
@@ -65,9 +65,7 @@ export function ListingResults({ listings, query, signedIn }: { listings: Listin
               </PubState>
             )
           ) : (
-            <div className="pub-grid pub-grid-fade">
-              {listings.map((listing) => <PropertyCard key={listing.id} listing={listing} />)}
-            </div>
+            <ListingGrid listings={listings} />
           )}
         </div>
       </div>

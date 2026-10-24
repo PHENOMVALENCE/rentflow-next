@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PubIcon, type PubIconName } from "@/components/icons";
-import { PropertyImage } from "@/components/pub/property-card";
+import { Gallery } from "@/components/pub/gallery";
 import { PublicLayout } from "@/components/pub/sections";
 import { groupedAmount, PROPERTY_TYPE_LABELS, UNIT_TYPE_LABELS } from "@/lib/listing-filters";
 import { getSession } from "@/server/auth/session";
@@ -23,8 +23,6 @@ export default async function ListingDetail({ params, searchParams }: Props) {
   if (!listing) notFound();
 
   const photos = listing.images ?? [];
-  const tiles = photos.slice(0, 5);
-  const hidden = photos.length - tiles.length;
   const unitLabel = listing.unitType ? UNIT_TYPE_LABELS[listing.unitType] : listing.unit;
   const propertyLabel = listing.propertyType ? PROPERTY_TYPE_LABELS[listing.propertyType] : listing.type;
   const rent = listing.monthly > 0 ? groupedAmount(listing.monthly) : null;
@@ -64,22 +62,7 @@ export default async function ListingDetail({ params, searchParams }: Props) {
             </div>
           </header>
 
-          <div className="pub-gallery" aria-label="Photos">
-            {photos.length === 0 ? (
-              <div className="pub-gallery-empty"><PropertyImage alt={listing.title} kind={listing.unitType} /></div>
-            ) : (
-              <div className="pub-mosaic-wrap">
-                <div className={`pub-mosaic pub-mosaic-${tiles.length}`}>
-                  {tiles.map((photo, index) => (
-                    <a key={photo.id} href={`/api/listing-images/${photo.id}`} target="_blank" rel="noreferrer" className="pub-mosaic-tile" aria-label={`Open photo ${index + 1} of ${photos.length}`}>
-                      <PropertyImage imageId={photo.id} alt={photo.altText ?? `${listing.title}${photos.length > 1 ? `, photo ${index + 1} of ${photos.length}` : ""}`} eager={index === 0} />
-                      {index === tiles.length - 1 && hidden > 0 && <span className="pub-mosaic-more" aria-hidden="true">+{hidden}</span>}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <Gallery title={listing.title} photos={photos} kind={listing.unitType} />
 
           <div className="pub-detail-layout">
             <div className="min-w-0">

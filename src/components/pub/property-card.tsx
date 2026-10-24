@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PubIcon, type PubIconName } from "@/components/icons";
 import type { Listing } from "@/lib/demo-data";
 import { groupedAmount, PROPERTY_TYPE_LABELS, UNIT_TYPE_LABELS } from "@/lib/listing-filters";
-import { Skyline } from "./sections";
+import { Skyline } from "./skyline";
 
 const kindIcon = (kind?: string): PubIconName =>
   kind === "SHOP" ? "store" : kind === "OFFICE" ? "briefcase" : kind === "STORE" ? "warehouse" : kind === "APARTMENT" ? "building" : "home";
