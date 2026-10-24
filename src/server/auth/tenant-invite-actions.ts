@@ -38,7 +38,7 @@ export async function issueTenantInvite(formData: FormData) {
     await tx.auditLog.create({ data: { organizationId: tenant.organizationId, actorId: session.userId, action: "tenant.invite_issued", resourceType: "Tenant", resourceId: tenant.id, metadata: { expiresAt: expiresAt.toISOString() } } });
   });
 
-  redirect(`/app/tenants/${tenant.id}?invite=${encodeURIComponent(token)}`);
+  redirect(`/app/tenants/${tenant.id}/invite?token=${encodeURIComponent(token)}`);
 }
 
 export async function requestTenantInviteOtp(formData: FormData) {
