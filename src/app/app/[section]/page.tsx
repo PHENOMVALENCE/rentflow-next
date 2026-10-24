@@ -223,7 +223,7 @@ async function renderSection(section: SectionName, session: SessionPayload) {
   return (
     <Panel title="Organization settings" subtitle="Runtime and workspace configuration" className="max-w-3xl">
       <div className="flex gap-3 rounded-xl border border-[var(--border)] bg-[#f8fafc] p-4">
-        <span className="rf-icon-tile shrink-0" aria-hidden="true"><AppIcon name="settings" /></span>
+        <span className="rf-icon-tile shrink-0" aria-hidden="true"><AppIcon name="menu" /></span>
         <div>
           <h3 className="font-semibold text-[var(--foreground)]">Configuration is protected server-side</h3>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-strong)]">Workspace identity, authentication and provider settings are controlled server-side. Sensitive provider secrets are configured only through runtime environment variables.</p>
