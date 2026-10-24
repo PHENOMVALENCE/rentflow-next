@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { db, hasDatabaseConfiguration } from "@/server/db";
 
 export type IncidentSeverity = "INFO" | "WARNING" | "ERROR" | "CRITICAL";
@@ -19,7 +20,7 @@ export async function recordPlatformIncident(input: {
         status: "OPEN",
         summary: input.summary.slice(0, 500),
         correlationId: input.correlationId ?? null,
-        details: input.details ?? undefined,
+        details: input.details as Prisma.InputJsonValue | undefined,
       },
     });
   } catch (error) {
