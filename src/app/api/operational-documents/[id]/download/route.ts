@@ -17,7 +17,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const store = getPrivateObjectStore();
     if (store.provider === "LOCAL") {
       const bytes = await store.get(document.storageKey);
-      return new Response(bytes, { headers: { "Content-Type": "application/octet-stream", "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(document.name)}`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      const body = new Uint8Array(bytes).buffer;
+      return new Response(body, { headers: { "Content-Type": "application/octet-stream", "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(document.name)}`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
     }
     const url = await store.createDownloadUrl(document.storageKey, 60);
     const parsed = new URL(url);
