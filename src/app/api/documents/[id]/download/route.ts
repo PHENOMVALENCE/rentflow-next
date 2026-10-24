@@ -23,7 +23,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     if (store.provider === "LOCAL") {
       const bytes = await store.get(leaseDocument.document.storageKey);
-      return new Response(bytes, {
+      const body = new Uint8Array(bytes).buffer;
+      return new Response(body, {
         headers: {
           "Content-Type": leaseDocument.document.mimeType || "application/octet-stream",
           "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(leaseDocument.document.name)}`,
