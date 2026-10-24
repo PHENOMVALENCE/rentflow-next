@@ -5,6 +5,8 @@ import { Avatar } from "@/components/app-shell";
 import { canManagePortfolio } from "@/server/auth/authorization";
 import { requireSession } from "@/server/auth/session";
 import { getDashboardReadModel } from "@/server/rentflow/read-model";
+import { getRoleHome } from "@/server/rentflow/home-read-model";
+import { RoleHomeView } from "@/components/home/role-home";
 import { db, hasDatabaseConfiguration } from "@/server/db";
 
 type Attention = { count: number; severity: "critical" | "warning" | "info"; icon: AppIconName; label: string; hint: string; href?: string };
@@ -34,6 +36,10 @@ function EmptyLine({ children, icon = "check" }: { children: React.ReactNode; ic
 
 export default async function Dashboard() {
   const session = await requireSession();
+  // Tenants and supervisors get their own homes (Laravel home-tenant / home-supervisor / home-pending).
+  const roleHome = await getRoleHome(session);
+  if (roleHome) return <RoleHomeView home={roleHome} />;
+
   const { dashboard, leases, maintenance, source } = await getDashboardReadModel(session);
   const portfolioRole = canManagePortfolio(session.role);
   const isSupervisor = session.role === "SUPERVISOR";

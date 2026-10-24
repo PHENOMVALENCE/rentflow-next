@@ -7,7 +7,8 @@ export default async function Layout({ children }: { children: React.ReactNode }
   const session = await requireSession();
   const demoMode = !hasDatabaseConfiguration();
 
-  let userName = "Demo Administrator";
+  const demoNames: Record<string, string> = { TENANT: "Rehema Kweka", SUPERVISOR: "Asha Mushi", LANDLORD: "Demo Landlord", PROPERTY_ADMIN: "Demo Property Admin" };
+  let userName = demoNames[session.role] ?? "Demo Administrator";
   let workspaceName = "RentFlow Preview";
 
   if (!demoMode) {
