@@ -1,14 +1,34 @@
 # RentFlow Next Documentation Map
 
-Start with **`ROADMAP.md`** — current state, milestones and known gaps.
+Start with **`ROADMAP.md`** for current status and **`IMPLEMENTATION_ROADMAP.md`** for the complete module-by-module execution plan.
 
 ## Status and planning
 - `ROADMAP.md` — what is done, what is next, what blocks release.
+- `IMPLEMENTATION_ROADMAP.md` — full implementation sequence, dependencies, milestone gates and production exit criteria.
+- `modules/README.md` — index of detailed implementation specifications for every product module.
 - `PARITY_MATRIX.md` — Laravel → Next.js evidence per capability.
 - `FEATURE_DELIVERY_RECORD.md` — code vs demo vs production-backed readiness.
 - `MIGRATION_PLAN.md` — migration method and phase definitions.
 - `REQUIREMENTS_TRACEABILITY.md` — SRS requirement → code → verification.
 - `HANDOFF.md` — where things live and what infrastructure is missing.
+
+## Module implementation specifications
+- `modules/00_FOUNDATION_AND_DESIGN_SYSTEM.md`
+- `modules/01_IDENTITY_AND_ACCESS.md`
+- `modules/02_ORGANIZATIONS_AND_GEOGRAPHY.md`
+- `modules/03_PROPERTIES_AND_UNITS.md`
+- `modules/04_PUBLIC_DISCOVERY_AND_INQUIRIES.md`
+- `modules/05_TENANTS_AND_ONBOARDING.md`
+- `modules/06_LEASES_AND_RENEWALS.md`
+- `modules/07_PAYMENTS_AND_RECEIPTS.md`
+- `modules/08_DOCUMENTS_AND_PRIVATE_STORAGE.md`
+- `modules/09_SUPERVISORS_AND_SCOPE.md`
+- `modules/10_MAINTENANCE.md`
+- `modules/11_COMMUNICATIONS_AND_NOTIFICATIONS.md`
+- `modules/12_REPORTING_AND_AUDIT.md`
+- `modules/13_PLATFORM_ADMINISTRATION.md`
+- `modules/14_INTEGRATIONS_AND_OPERATIONS.md`
+- `modules/15_DATA_MIGRATION_AND_CUTOVER.md`
 
 ## Product
 - `PRODUCT_REQUIREMENTS.md` — prioritized behavior.
