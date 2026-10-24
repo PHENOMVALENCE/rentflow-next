@@ -1,1 +1,102 @@
-# Placeholder intentionally disabled. Real workflow lives on codex/masterchanges until merged by PR.
+name: Auto PR merge
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  resolve-validate-merge:
+    if: >-
+      github.event.pull_request.head.ref == 'codex/masterchanges' &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    concurrency:
+      group: rentflow-auto-merge-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out codex/masterchanges
+        uses: actions/checkout@v4
+        with:
+          ref: codex/masterchanges
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch main
+        run: git fetch origin main
+
+      - name: Merge main and prefer PR branch on conflicts
+        shell: bash
+        run: |
+          set +e
+          git merge --no-edit --no-ff origin/main
+          merge_status=$?
+          set -e
+
+          if [ "$merge_status" -ne 0 ]; then
+            echo "Conflicts detected. Keeping codex/masterchanges versions for conflicted paths."
+
+            while IFS= read -r -d '' file; do
+              if git cat-file -e ":2:$file" 2>/dev/null; then
+                git checkout --ours -- "$file"
+                git add -- "$file"
+              else
+                git rm -f --ignore-unmatch -- "$file"
+              fi
+            done < <(git diff --name-only --diff-filter=U -z)
+
+            if git diff --name-only --diff-filter=U | grep -q .; then
+              echo "Automatic conflict resolution left unresolved files."
+              git status --short
+              exit 1
+            fi
+
+            git add -A
+            git commit -m "chore: resolve main conflicts preferring codex changes"
+          fi
+
+      - name: Push synchronized implementation branch
+        run: |
+          if [ -n "$(git log origin/codex/masterchanges..HEAD --oneline)" ]; then
+            git push origin HEAD:codex/masterchanges
+          else
+            echo "codex/masterchanges is already synchronized with main."
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Merge pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr merge "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --merge \
+            --delete-branch=false

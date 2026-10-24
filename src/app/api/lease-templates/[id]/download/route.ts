@@ -1,0 +1,42 @@
+import { NextResponse } from "next/server";
+import { getSession } from "@/server/auth/session";
+import { db, hasDatabaseConfiguration } from "@/server/db";
+import { getPrivateObjectStore, StorageConfigurationError } from "@/server/storage/private-object-store";
+
+export const runtime = "nodejs";
+
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!hasDatabaseConfiguration()) return NextResponse.json({ error: "persistence_not_configured" }, { status: 503 });
+  const session = await getSession();
+  if (!session || !["LANDLORD", "PROPERTY_ADMIN", "PLATFORM_ADMIN"].includes(session.role)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const template = await db.organizationLeaseTemplate.findFirst({
+    where: { id, ...(session.organizationId ? { organizationId: session.organizationId } : {}) },
+  });
+  if (!template) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  try {
+    const store = getPrivateObjectStore();
+    if (store.provider === "LOCAL") {
+      const bytes = await store.get(template.storageKey);
+      const body = new Uint8Array(bytes).buffer;
+      return new Response(body, {
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(template.name)}`,
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
+    const url = await store.createDownloadUrl(template.storageKey, 60);
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") throw new StorageConfigurationError("Private storage returned a non-HTTPS URL.");
+    return NextResponse.redirect(parsed, { status: 307 });
+  } catch (error) {
+    if (error instanceof StorageConfigurationError) return NextResponse.json({ error: "private_storage_not_configured" }, { status: 503 });
+    console.error("lease_template_download_error", error);
+    return NextResponse.json({ error: "download_failed" }, { status: 500 });
+  }
+}
