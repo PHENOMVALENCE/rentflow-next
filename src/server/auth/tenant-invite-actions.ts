@@ -3,7 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { UNSET_PIN_HASH } from "@/server/auth/account-actions";
+import { UNSET_PIN_HASH } from "@/server/auth/pin-constants";
 import { normalizeTanzaniaPhone } from "@/server/auth/phone";
 import { createSession, requireSession } from "@/server/auth/session";
 import { db } from "@/server/db";

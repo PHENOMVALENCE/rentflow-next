@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { hashPin, verifyPin } from "./password";
+import { UNSET_PIN_HASH } from "./pin-constants";
 import { createSession, requireSession } from "./session";
 
-export const UNSET_PIN_HASH = "UNSET_PIN";
 
 const changePinSchema = z.object({
   currentPin: z.string().regex(/^\d{4}$/),

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui";
-import { setupAccountPinAction, UNSET_PIN_HASH } from "@/server/auth/account-actions";
+import { setupAccountPinAction } from "@/server/auth/account-actions";
+import { UNSET_PIN_HASH } from "@/server/auth/pin-constants";
 import { getSessionUser, requireSession } from "@/server/auth/session";
 
 export default async function PinPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {

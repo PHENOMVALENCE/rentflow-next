@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
-import { parseOnboardingNotes, saveOwnTenantProfile } from "@/server/rentflow/tenant-onboarding-actions";
+import { saveOwnTenantProfile } from "@/server/rentflow/tenant-onboarding-actions";
+import { parseOnboardingNotes } from "@/server/rentflow/tenant-onboarding-notes";
 
 export default async function TenantOnboardingProfilePage() {
   const session = await requireSession(["TENANT"]);
