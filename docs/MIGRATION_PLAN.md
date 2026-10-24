@@ -4,6 +4,21 @@
 
 Reach behavioral and functional parity with `PHENOMVALENCE/RentFlow` before cutover. Migration is incremental and evidence-driven.
 
+This document defines the **method and phases**. Current status, milestone order and open gaps are tracked in `ROADMAP.md`.
+
+| Phase | Status (24 Oct 2026) |
+|---|---|
+| 0 Baseline audit | Done — inventory reflected in `PARITY_MATRIX.md` |
+| 1 Foundation | Done except PostgreSQL in CI and integration-test harness |
+| 2 Data/domain | Schema and domain functions written; **no migration generated** (`ROADMAP.md` M1) |
+| 3 Public surface | Code complete except quick view, lightbox, virtual tour |
+| 4 Property operations | Code complete; unvalidated |
+| 5 Tenant & lease lifecycle | Code complete except tenant home and reminders |
+| 6 Payments | Code complete; needs Snippe sandbox and idempotency DB tests |
+| 7 Operations | In-app complete; outbound delivery missing |
+| 8 Reporting & scheduling | Metrics and cron exist; report generation/export missing |
+| 9 Validation & cutover | Not started |
+
 ## Phase 0 — Baseline audit
 
 Inventory Laravel routes, models, migrations, policies, middleware, Livewire/pages, controllers, jobs, notifications, commands, tests and integrations. Populate `PARITY_MATRIX.md` before claiming parity.
@@ -67,7 +82,7 @@ Cutover requires no unresolved P0/P1 parity gaps in authentication, authorizatio
 
 ## Commit strategy
 
-Prefer small, reviewable commits:
+All work lands on `codex/masterchanges` (`BRANCH_POLICY.md`). Prefer small, reviewable commits:
 
 - `chore:` tooling/configuration
 - `docs:` documentation
