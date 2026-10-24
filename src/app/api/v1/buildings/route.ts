@@ -1,0 +1,6 @@
+import { z } from "zod";
+import { db } from "@/server/db";
+import { apiError, apiSession, isApiError, jsonData } from "@/server/api/v1";
+
+export async function GET(){const s=await apiSession(["PLATFORM_ADMIN","LANDLORD","PROPERTY_ADMIN","SUPERVISOR"]);if(isApiError(s))return s;const where=s.role==="SUPERVISOR"?{property:{supervisorAssignments:{some:{userId:s.userId,active:true}}}}:s.role!=="PLATFORM_ADMIN"&&s.organizationId?{property:{organizationId:s.organizationId}}:{};return jsonData({data:await db.building.findMany({where,include:{property:true,_count:{select:{units:true}}},orderBy:{name:"asc"}})});}
+export async function POST(request:Request){const s=await apiSession(["PLATFORM_ADMIN","LANDLORD","PROPERTY_ADMIN"]);if(isApiError(s))return s;try{const input=z.object({propertyId:z.string().min(1),name:z.string().trim().min(1).max(160),floors:z.number().int().min(1).max(200).nullable().optional()}).parse(await request.json());const p=await db.property.findFirst({where:{id:input.propertyId,...(s.role!=="PLATFORM_ADMIN"&&s.organizationId?{organizationId:s.organizationId}:{})}});if(!p)return jsonData({message:"Property not found"},{status:404});const b=await db.building.create({data:input});return jsonData({data:b},{status:201});}catch(error){return apiError(error);}}
