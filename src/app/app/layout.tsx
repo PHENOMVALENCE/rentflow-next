@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { logoutAction } from "@/server/auth/actions";
 import { requireSession } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
 
@@ -19,7 +20,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <AppShell role={session.role} userName={userName} workspaceName={workspaceName} demoMode={demoMode}>
+    <AppShell role={session.role} userName={userName} workspaceName={workspaceName} demoMode={demoMode} logout={demoMode ? undefined : logoutAction}>
       {children}
     </AppShell>
   );
