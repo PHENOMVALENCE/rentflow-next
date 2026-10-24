@@ -1,6 +1,15 @@
 {
   "framework": "nextjs",
-  "crons": [{"path":"/api/cron/leases","schedule":"15 1 * * *"}],
+  "crons": [
+    {
+      "path": "/api/cron/leases",
+      "schedule": "15 22 * * *"
+    },
+    {
+      "path": "/api/cron/lease-reminders",
+      "schedule": "0 5 * * *"
+    }
+  ],
   "git": {
     "deploymentEnabled": false
   }
