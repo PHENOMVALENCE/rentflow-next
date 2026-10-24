@@ -50,6 +50,19 @@ Matches Laravel: the catalogue lives at `/` (`#available-units`), and the enquir
 
 ## ADR-N009 — Platform admin navigation (provisional)
 
-**Status:** Provisional · 24 October 2026
+**Status:** Superseded by ADR-N010 · 24 October 2026
 
 Laravel platform operators see only platform navigation and enter an organization through an explicit context switch. Next.js has no context switch yet, so platform admins see platform groups plus organization groups in one sidebar. Replace with the Laravel model when gap G7 is implemented.
+
+## ADR-N010 — Platform organization context
+
+**Status:** Accepted · 24 October 2026 · supersedes ADR-N009
+
+Matches Laravel `PlatformContext`. Outside a context, platform admins see platform navigation only and `/app` redirects to `/app/platform`. **Enter organization** (on the organization detail page) re-issues the session with that `organizationId`, writes `platform.context_entered` to the audit log and switches the sidebar to the organization workspace with a "System admin mode" banner. **Exit organization context** clears the scope and writes `platform.context_exited`.
+
+## ADR-N011 — Translation keyed by English sentences
+
+**Status:** Accepted · 24 October 2026
+
+Mirrors Laravel `App\Support\Phrases`: UI code passes the English sentence to `t()`; a missing translation falls back to English. `src/i18n/sw.json` is generated from Laravel `lang/sw.json` and `lang/{en,sw}/phrases.php` and must not be hand-edited; phrases introduced in RentFlow Next go in `sw.extra.json`. The locale is a cookie (`rf_locale`, default English). Client components receive only the phrases they use (`scripts/extract-client-phrases.mjs`); unit tests fail when that list is stale or a used phrase has no Kiswahili.
+

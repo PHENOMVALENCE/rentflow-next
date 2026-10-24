@@ -48,14 +48,16 @@ Component inventory (Laravel source → state):
 | Public navbar, footer, brand, state | `x-pub.*` | Ported |
 | Listing card, property image | `x-pub.property-card`, `property-image` | Ported |
 | Property tile | `x-rf.property-tile` | Pending (dashboard) |
-| Lease countdown / rail | `x-rf.countdown` | Pending |
+| Facts grid, audit list | `rf-facts`, audit rows | Ported (`Facts`, `AuditList`) |
+| Lease countdown / rail | `x-rf.countdown` | Ported (tenant home) |
 | Receipt slip | `x-rf.receipt-slip` | Pending |
 | Maintenance timeline | `maintenance/partials/timeline` | Pending |
 | Charts | `x-rf.line-chart`, `x-rf.donut-chart` | Pending |
 | Dialog, file preview | `x-rf.dialog`, `x-rf.file-preview*` | Pending |
 | Household, person, SMS components | `x-rf.household`, `person`, `sms-*` | Pending |
-| Language switcher / prompt | `x-rf.language-*` | Pending (G8) |
-| Quick view, gallery lightbox, virtual tour | `public/partials/*` | Pending (G6) |
+| Language switcher | `x-rf.language-switcher` | Ported; first-visit language prompt not ported |
+| Quick view, gallery lightbox | `public/partials/{quick-view,gallery}` | Ported |
+| Virtual tour | `properties/partials/virtual-tour` | Pending (G6) |
 
 Pending components are scheduled in `ROADMAP.md` M3–M4.
 

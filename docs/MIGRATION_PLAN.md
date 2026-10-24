@@ -11,12 +11,12 @@ This document defines the **method and phases**. Current status, milestone order
 | 0 Baseline audit | Done — inventory reflected in `PARITY_MATRIX.md` |
 | 1 Foundation | Done except PostgreSQL in CI and integration-test harness |
 | 2 Data/domain | Schema and domain functions written; **no migration generated** (`ROADMAP.md` M1) |
-| 3 Public surface | Code complete except quick view, lightbox, virtual tour |
+| 3 Public surface | Code complete except virtual tour |
 | 4 Property operations | Code complete; unvalidated |
-| 5 Tenant & lease lifecycle | Code complete except tenant home and reminders |
+| 5 Tenant & lease lifecycle | Code complete (tenant home, reminders, Laravel milestone timing) |
 | 6 Payments | Code complete; needs Snippe sandbox and idempotency DB tests |
-| 7 Operations | In-app complete; outbound delivery missing |
-| 8 Reporting & scheduling | Metrics and cron exist; report generation/export missing |
+| 7 Operations | In-app complete; outbound delivery missing (G4) |
+| 8 Reporting & scheduling | Reports with CSV export and both crons implemented; PDF/print pending |
 | 9 Validation & cutover | Not started |
 
 ## Phase 0 — Baseline audit

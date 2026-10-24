@@ -30,7 +30,10 @@ Vercel Git deployments are disabled (`vercel.json` → `git.deploymentEnabled: f
 ## Health and scheduling
 
 - `GET /api/health` (liveness) and `GET /api/health/readiness`.
-- Vercel Cron calls `/api/cron/leases` daily at 01:15 **UTC** (04:15 EAT). Laravel ran the equivalent at 01:15 EAT — confirm the intended time before production. The endpoint is idempotent and requires `Authorization: Bearer $CRON_SECRET`.
+- Vercel Cron (UTC schedules in `vercel.json`) matches the Laravel EAT times:
+  - `/api/cron/leases` at 22:15 UTC = 01:15 EAT — advances lease milestones.
+  - `/api/cron/lease-reminders` at 05:00 UTC = 08:00 EAT — in-app renewal/grace reminders.
+- Both require `Authorization: Bearer $CRON_SECRET` and are safe to re-run.
 
 ## Safety
 

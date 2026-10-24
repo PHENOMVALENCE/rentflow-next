@@ -2,6 +2,22 @@
 
 All notable RentFlow Next changes are recorded here.
 
+## 2026-10-24 (afternoon)
+
+### Added
+- Tenant, supervisor and pending-account home screens with lease countdown rail and next step.
+- Daily lease reminders (`/api/cron/lease-reminders`, 08:00 EAT), idempotent per lease and template.
+- Platform organization context (audited enter/exit) and organization, user, payment and incident detail pages.
+- Report generation for the Laravel catalog with scoped CSV export.
+- Listing quick-view drawer and gallery lightbox.
+- English/Kiswahili switcher using the Laravel translation catalog; public site, sign-in flows, shell, homes and dashboard translated.
+- Organization-only pages explain a missing organization instead of returning 404.
+- `npm run lint` in CI.
+
+### Fixed
+- Lease milestones now match Laravel: East Africa Time calendar days, grace starts on the end date, forward-only; the cron uses conditional updates and runs at 01:15 EAT.
+- Desktop sidebar missing for some roles (`lg:flex` was not generated).
+
 ## 2026-10-24
 
 ### Changed

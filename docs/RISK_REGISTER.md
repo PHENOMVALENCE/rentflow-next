@@ -12,8 +12,8 @@
 | Occupied unit exposed publicly | Critical | Derived availability; read model and image route re-check eligibility. |
 | Cross-tenant data exposure | Critical | Server authorization and scoped read models; cross-scope DB tests pending. |
 | Auto-merge workflow keeps branch side on conflicts and can drop `main` edits | Medium | Merge only at milestone gates after review (`BRANCH_POLICY.md`). |
-| Cron runs at 01:15 UTC, not 01:15 EAT as in Laravel | Medium | Confirm intended time before production (`HANDOFF.md`). |
-| Demo mode hides missing-organization behaviour (silent 404s) | Medium | `ROADMAP.md` M1 item 5. |
+| Report and platform-detail queries have never run against PostgreSQL | Medium | Typechecked against Prisma; exercise in M2 before relying on exports. |
+| Demo pages prerender with the build-time `DEMO_ROLE` | Low | Demo only; database mode reads the session per request (`DEVELOPER_ONBOARDING.md`). |
 | Provider secrets leaked | Critical | Environment-only secrets; no payload/secret logging. |
 | Scheduler repeated execution corrupts state | High | Idempotent transition services; retry test pending. |
 | Migration diverges from Laravel behavior | High | Parity matrix, traceability and ADR control. |

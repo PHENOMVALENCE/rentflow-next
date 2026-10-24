@@ -8,14 +8,15 @@ This is the single source for **what is done, what is next and what blocks relea
 
 | Dimension | State |
 |---|---|
-| Laravel capability coverage | Every Laravel staff, tenant, supervisor, platform and public list screen has a Next.js route; remaining gaps are listed in §4. |
-| Visual parity | Laravel CSS and component markup ported (see `DESIGN_SYSTEM.md`). Public home, listing detail, auth flows, shell and dashboard rebuilt; other screens render through the compatibility layer. |
-| Domain rules | Lease states, T-14 renewal, grace, listing eligibility, renewal planning and exact payment matching are pure functions with unit tests (`src/domain`). |
+| Laravel capability coverage | Every Laravel screen has a Next.js route, including role homes, platform detail pages and report generation. Open gaps (G4, G6 virtual tour, G8 remaining screens, G9, G10) are listed in §4. |
+| Visual parity | Laravel CSS and component markup ported (see `DESIGN_SYSTEM.md`). Public home, listing detail (gallery lightbox, quick view), auth flows, shell, staff dashboard, tenant/supervisor/pending homes, community index, reports and platform detail pages rebuilt; other screens render through the compatibility layer. |
+| Domain rules | Lease milestones (EAT calendar days, forward-only, matching Laravel `LeaseMilestones`), reminders, tenant next step, listing eligibility, renewal planning and exact payment matching are pure functions with unit tests (`src/domain`). |
 | Persistence | Prisma schema has 44 models. **No migration has been generated or applied.** Known schema gaps are in `SCHEMA_PARITY_GAPS.md`. |
-| Runtime mode | Without `DATABASE_URL` the app runs in demo mode with synthetic read data and a demo platform-admin session. Write paths require the database. |
-| Quality gates | `typecheck`, `lint`, `test` (32 unit tests) and `next build` pass locally. CI runs typecheck, test and build. No integration or Playwright tests exist yet. |
-| Release | `main` is behind `codex/masterchanges`. Vercel Git deployments are disabled (`vercel.json`); production deploys are manual (see `DEPLOYMENT.md`). |
+| Runtime mode | Without `DATABASE_URL` the app runs in demo mode with synthetic read data. The demo session is a platform admin unless `DEMO_ROLE` is set at build time (`DEVELOPER_ONBOARDING.md`). Write paths, reports and organization context require the database. |
+| Quality gates | `typecheck`, `lint`, `test` (57 unit tests) and `next build` pass locally; CI runs all four. No integration or Playwright tests exist yet. |
+| Release | Merged to `main` through PR #2 (24 Oct 2026). Vercel Git deployments are disabled (`vercel.json`); production deploys are manual and have not been run for this release (see `DEPLOYMENT.md`). |
 | Validated parity | **None.** No row in `PARITY_MATRIX.md` is `PARITY` because no capability has been exercised end-to-end against PostgreSQL. |
+| Bottom line | Everything that can be built without external infrastructure is built. What remains is M1 (database), M2 (integration evidence), M5 (providers) and M6 (data cutover) — none can be finished from code alone. |
 
 ## 2. Milestones
 
@@ -29,7 +30,7 @@ Goal: a real database underneath the existing code.
 2. Resolve the schema gaps that affect identity first: dedicated `pinHash`/`pinSetAt`, normalized unique phone (`SCHEMA_PARITY_GAPS.md` §1).
 3. Generate the initial Prisma migration; review the SQL; commit it under `prisma/migrations`.
 4. Run `npm run db:seed` with bootstrap variables and sign in with phone + PIN.
-5. Replace the silent 404 on organization-only pages (attachment requests, operational documents, organization, standard leases) with an explanatory state when the session has no organization. This currently affects demo mode and platform admins (see G7).
+5. ~~Replace the silent 404 on organization-only pages~~ — done 24 Oct 2026 (`NeedsOrganization`).
 
 **Exit gate:** migration committed and applied to a disposable database; bootstrap admin can sign in; `npm run build` passes against it.
 
@@ -39,21 +40,19 @@ Goal: turn "code exists" into evidence for the nine critical parity gates.
 
 1. Add repository/integration tests against a disposable PostgreSQL instance (Vitest + test database) for: organization isolation, supervisor scope, tenant self-scope, listing eligibility re-checks, lease creation 3/6-month rule, renewal successor creation, cron transition idempotency, webhook duplicate/mismatch handling, private document authorization.
 2. Add Playwright and the minimum role journeys from `TESTING.md`.
-3. Add CI services for PostgreSQL and run `lint` in CI.
+3. Add a PostgreSQL service to CI (lint already runs in CI since 24 Oct 2026).
 4. Mark parity rows `PARITY` only when automated tests and a role walkthrough are recorded.
 
 **Exit gate:** all nine critical gates in `PARITY_MATRIX.md` have automated evidence.
 
-### M3 — Close functional gaps
+### M3 — Close functional gaps · *mostly done*
 
-Goal: features Laravel has that Next.js does not (see §4, items G1–G11). Ordered by user impact:
+Goal: features Laravel has that Next.js does not (see §4). Done on 24 Oct 2026: G1, G2, G3, G5, G7, G11, G6 (quick view and lightbox) and G8 for the public site, sign-in flows, shell and homes. Remaining:
 
-1. Tenant and supervisor home screens (G1), unattached-account home (G2).
-2. Lease reminders schedule (G3) and outbound notification delivery (G4).
-3. Report generation and exports from the report catalog (G5).
-4. Listing quick view, photo lightbox and virtual tour (G6).
-5. Platform-admin organization context (G7) and platform detail screens (G11).
-6. Remaining items as capacity allows.
+1. Outbound notification delivery (G4) — blocked on provider decisions.
+2. Virtual tour (G6) — needs a schema field and private media storage.
+3. WhatsApp message history (G10) — depends on G4.
+4. Report types that need data the schema lacks (expenses, statements, saved reports) — see `report-runner.ts`.
 
 **Exit gate:** every gap is either implemented with tests or recorded as `INTENTIONALLY_CHANGED` with an ADR.
 
@@ -63,7 +62,7 @@ Goal: replace compatibility-layer rendering with ported Laravel markup, screen b
 
 1. Port remaining screens in this order: properties → units/buildings → tenants → leases/pay/receipts → maintenance → notices/safety/community → reports → platform console.
 2. Each screen: loading, empty and error states; keyboard focus; 390px and 1440px screenshots compared with Laravel.
-3. Decide on bilingual support (English/Swahili) — Laravel ships a language switcher (G8).
+3. Translate the remaining staff, platform and invitation screens (G8). Wrap strings with `t()`; the coverage test fails until every new phrase has Kiswahili in `src/i18n/sw.json` or `sw.extra.json`.
 
 **Exit gate:** `globals.css` compatibility layer can be deleted without visual regressions.
 
@@ -97,19 +96,19 @@ Goal: everything external that the code already supports through adapters.
 
 ## 4. Known gaps against Laravel
 
-| ID | Gap | Laravel reference | Milestone |
+| ID | Gap | Laravel reference | Status |
 |---|---|---|---|
-| G1 | Dedicated tenant and supervisor home screens; Next uses one dashboard with role-specific metrics | `livewire/app/home-tenant`, `home-supervisor` | M3 |
-| G2 | Home for accounts not yet attached to an organization | `livewire/app/home-pending` | M3 |
-| G3 | Daily lease reminder sends (08:00 EAT); Next cron only advances lease state and writes in-app notifications | `SendLeaseRemindersCommand` | M3 |
-| G4 | Outbound delivery: inquiry email, platform alert email, tenant SMS copy, SMS and WhatsApp jobs. Adapters exist but are not wired into workflows | `app/Jobs/*`, `app/Notifications/*` | M3 / M5 |
-| G5 | Report generation and PDF/print/sheet export; Next has the catalog (`report-catalog.ts`) but the reports page shows metrics only | `livewire/app/reports`, `reports/document.blade.php` | M3 |
-| G6 | Listing quick view, gallery lightbox, virtual tour (no tour field in schema) | `public/partials/quick-view`, `gallery`, `properties/partials/virtual-tour` | M3 |
-| G7 | Platform admin "enter organization" context; Next shows platform and organization navigation together (provisional, ADR-N009) | `PlatformContext`, `app.platform.context.exit` | M3 |
-| G8 | English/Swahili language switcher and translated phrases | `x-rf.language-switcher`, `Phrases` | M4 |
-| G9 | Backups, verification and restore commands | `BackupCommand`, `VerifyBackupCommand`, `RestoreBackupCommand` | M5 |
-| G10 | Account WhatsApp message history | `account/whatsapp-messages` | M3 |
-| G11 | Platform detail screens: organization, user, payment and incident pages (Next has list views only) | `platform/{organizations,users,payments,incidents}/show` | M3 |
+| G1 | Dedicated tenant and supervisor home screens | `livewire/app/home-tenant`, `home-supervisor` | **Done** 24 Oct 2026 |
+| G2 | Home for accounts not yet attached to an organization | `livewire/app/home-pending` | **Done** 24 Oct 2026 |
+| G3 | Daily lease reminders (08:00 EAT), one per lease and template | `SendLeaseRemindersCommand` | **Done** in-app; SMS delivery waits on G4 |
+| G4 | Outbound delivery: inquiry email, platform alert email, tenant SMS copy, SMS and WhatsApp jobs. Adapters exist but are not wired into workflows | `app/Jobs/*`, `app/Notifications/*` | M5 — blocked on provider decisions |
+| G5 | Report generation and export | `livewire/app/reports`, `reports/document.blade.php` | **Done** with CSV export; PDF/print, expenses, statements and saved reports pending |
+| G6 | Listing quick view, gallery lightbox, virtual tour | `public/partials/quick-view`, `gallery`, `properties/partials/virtual-tour` | Quick view and lightbox **done**; virtual tour pending (schema + storage) |
+| G7 | Platform admin "enter organization" context | `PlatformContext`, `app.platform.context.exit` | **Done** 24 Oct 2026 (ADR-N010) |
+| G8 | English/Kiswahili switcher and translated phrases | `x-rf.language-switcher`, `Phrases` | **Partly done**: public site, sign-in, shell, homes, dashboard, community. Staff list/detail, platform, reports and invitation pages still English (M4) |
+| G9 | Backups, verification and restore commands | `BackupCommand`, `VerifyBackupCommand`, `RestoreBackupCommand` | M5 — likely provider-managed |
+| G10 | Account WhatsApp message history | `account/whatsapp-messages` | Depends on G4 |
+| G11 | Platform detail screens: organization, user, payment, incident | `platform/{organizations,users,payments,incidents}/show` | **Done** 24 Oct 2026 |
 
 ## 5. Not planned for port
 
