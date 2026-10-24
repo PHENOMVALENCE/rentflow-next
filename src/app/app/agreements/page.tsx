@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader, Status } from "@/components/ui";
+import { AppIcon } from "@/components/icons";
+import { Empty, PageHeader, Panel, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { acknowledgeLeaseDocument } from "@/server/rentflow/document-actions";
 import { getTenantAgreements } from "@/server/rentflow/agreement-read-model";
@@ -13,17 +14,48 @@ export default async function AgreementsPage() {
   return (
     <>
       <PageHeader eyebrow="Documents" title="Agreements" description="Lease documents available to your account. Opening or acknowledging a file records access; it is not a certified electronic signature." />
-      <div className="space-y-5">
-        {leases.length === 0 ? <div className="rf-card p-8 text-center text-sm text-[var(--muted-strong)]">No agreements are linked to your account.</div> : leases.map((lease) => (
-          <section key={lease.id} className="rf-card overflow-hidden">
-            <div className="border-b border-[var(--border)] p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold">{lease.unit.property.name} · {lease.unit.unitNumber}</h2><p className="mt-1 text-xs text-[var(--muted)]">{date.format(lease.startDate)} – {date.format(lease.endDate)}</p></div><Status>{lease.status}</Status></div></div>
-            {lease.documents.length === 0 ? <p className="p-5 text-sm text-[var(--muted-strong)]">No documents attached to this lease.</p> : lease.documents.map((link) => {
-              const acknowledged = link.acknowledgements[0];
-              return <div key={link.id} className="grid gap-4 border-b border-[var(--border)] p-5 last:border-b-0 md:grid-cols-[1fr_auto] md:items-center"><div><p className="font-medium">{link.document.name}</p><p className="mt-1 text-xs text-[var(--muted)]">{link.kind.replaceAll("_", " ")}{link.required ? " · Required" : ""}{acknowledged ? ` · Opened ${date.format(acknowledged.acknowledgedAt)}` : ""}</p></div><div className="flex gap-2"><Link href={`/api/documents/${link.id}/download`} className="rf-button rf-button-light">Open file</Link><form action={acknowledgeLeaseDocument}><input type="hidden" name="leaseDocumentId" value={link.id} /><button type="submit" className="rf-button rf-button-dark">{acknowledged ? "Record view again" : "Acknowledge view"}</button></form></div></div>;
-            })}
-          </section>
-        ))}
-      </div>
+
+      {leases.length === 0 ? (
+        <Empty icon="file" title="No agreements linked">Lease documents linked to your account will appear here.</Empty>
+      ) : (
+        <div className="space-y-5">
+          {leases.map((lease) => (
+            <Panel
+              key={lease.id}
+              title={`${lease.unit.property.name} · ${lease.unit.unitNumber}`}
+              subtitle={`${date.format(lease.startDate)} – ${date.format(lease.endDate)}`}
+              action={<Status>{lease.status}</Status>}
+              flush
+            >
+              {lease.documents.length === 0 ? (
+                <div className="px-5 pb-5"><Empty icon="file" title="No documents attached">This lease does not have any available documents yet.</Empty></div>
+              ) : (
+                <ul className="rf-list">
+                  {lease.documents.map((link) => {
+                    const acknowledged = link.acknowledgements[0];
+                    return (
+                      <li key={link.id} className="rf-list-row">
+                        <span className="rf-list-icon" aria-hidden="true"><AppIcon name="file" className="h-[18px] w-[18px]" /></span>
+                        <span className="rf-list-main">
+                          <span className="rf-list-title block">{link.document.name}</span>
+                          <span className="rf-list-meta block">{link.kind.replaceAll("_", " ")}{link.required ? " · Required" : ""}{acknowledged ? ` · Opened ${date.format(acknowledged.acknowledgedAt)}` : ""}</span>
+                        </span>
+                        <span className="flex flex-wrap gap-2 lg:justify-end">
+                          <Link href={`/api/documents/${link.id}/download`} className="rf-button rf-button-light"><AppIcon name="eye" className="h-4 w-4" /> Open file</Link>
+                          <form action={acknowledgeLeaseDocument}>
+                            <input type="hidden" name="leaseDocumentId" value={link.id} />
+                            <button type="submit" className="rf-button rf-button-dark"><AppIcon name="check" className="h-4 w-4" /> {acknowledged ? "Record view again" : "Acknowledge view"}</button>
+                          </form>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Panel>
+          ))}
+        </div>
+      )}
     </>
   );
 }
