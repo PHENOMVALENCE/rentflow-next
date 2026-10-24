@@ -9,6 +9,8 @@ export type NavItem = {
   icon: AppIconName;
   /** Path prefixes that mark this item active, in addition to `href`. */
   match?: string[];
+  /** Only the exact `href` (or exact `match` paths) count as active, not nested pages. */
+  exact?: boolean;
 };
 
 export type NavGroup = { group: string | null; items: NavItem[] };
@@ -31,7 +33,7 @@ const safety: NavItem = { label: "Safety", hint: "Official building notices", hr
  * Role navigation mirrored from Laravel `layouts/partials/nav.blade.php`.
  * Navigation only hides links; every page still re-checks authorization server-side.
  */
-export function navigationFor(role: NavRole): NavGroup[] {
+export function navigationFor(role: NavRole, options: { inOrganization?: boolean } = {}): NavGroup[] {
   if (role === "TENANT") {
     return [
       { group: "Overview", items: [home("Your unit and lease"), notices] },
@@ -110,10 +112,19 @@ export function navigationFor(role: NavRole): NavGroup[] {
     { group: "Insights", items: [{ label: "Reports", hint: "Operational records and exports", href: "/app/reports", icon: "chart" }] },
   ];
 
+  if (role === "PLATFORM_ADMIN" && options.inOrganization) {
+    // Inside an organization context: that organization's workspace, plus a way back to the platform.
+    return [
+      { group: "Overview", items: [home("Lease and occupancy snapshot"), notices] },
+      ...organization,
+      { group: "Platform", items: [{ label: "Platform overview", hint: "Leave via the banner to drop organization scope", href: "/app/platform", icon: "zap" }] },
+    ];
+  }
+
   if (role === "PLATFORM_ADMIN") {
     const platform = (section: string, label: string, hint: string, icon: AppIconName): NavItem => ({ label, hint, href: `/app/platform/${section}`, icon });
     return [
-      { group: null, items: [{ label: "Overview", hint: "Platform command center", href: "/app/platform", icon: "home", match: ["/app"] }] },
+      { group: null, items: [{ label: "Overview", hint: "Platform command center", href: "/app/platform", icon: "home", match: ["/app"], exact: true }] },
       {
         group: "Workspace",
         items: [
@@ -155,7 +166,6 @@ export function navigationFor(role: NavRole): NavGroup[] {
           platform("analytics", "Platform analytics", "Stored counts, not product telemetry", "calendar"),
         ],
       },
-      ...organization.map((group) => ({ ...group, group: `Organization · ${group.group}` })),
       { group: "System", items: [platform("settings", "Settings", "Runtime config, not a secret editor", "menu"), catalogue] },
     ];
   }
@@ -170,7 +180,7 @@ export function navigationFor(role: NavRole): NavGroup[] {
 /** True when `pathname` is the item's page or a page nested under it (or under an extra match prefix). */
 export function isNavItemActive(item: NavItem, pathname: string) {
   const under = (prefix: string) => pathname === prefix || (prefix !== "/" && prefix !== "/app" && pathname.startsWith(`${prefix}/`));
-  if (item.href === "/app" || item.href === "/") return pathname === item.href || (item.match ?? []).some((prefix) => pathname === prefix);
+  if (item.exact || item.href === "/app" || item.href === "/") return pathname === item.href || (item.match ?? []).some((prefix) => pathname === prefix);
   return under(item.href) || (item.match ?? []).some(under);
 }
 

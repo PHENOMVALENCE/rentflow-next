@@ -14,6 +14,9 @@ type ShellProps = {
   workspaceName: string;
   demoMode: boolean;
   logout?: () => Promise<void>;
+  /** Organization name when a platform admin has entered an organization context. */
+  platformContext?: string | null;
+  exitContext?: () => Promise<void>;
 };
 
 export function Avatar({ name, size = "md" }: { name: string; size?: "xs" | "sm" | "md" | "lg" | "xl" }) {
@@ -51,9 +54,9 @@ function Nav({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathname: s
 }
 
 /** Authenticated frame (Laravel `layouts/app.blade.php`): collapsible sidebar, top bar, account menu, mobile drawer. */
-export function AppShell({ children, role, userName, workspaceName, demoMode, logout }: ShellProps) {
+export function AppShell({ children, role, userName, workspaceName, demoMode, logout, platformContext, exitContext }: ShellProps) {
   const pathname = usePathname();
-  const groups = navigationFor(role);
+  const groups = navigationFor(role, { inOrganization: Boolean(platformContext) });
   const roleLabel = ROLE_LABELS[role];
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [navOpen, setNavOpen] = useState(false);
@@ -141,7 +144,7 @@ export function AppShell({ children, role, userName, workspaceName, demoMode, lo
                 <span className="hidden text-[0.9375rem] font-bold text-[#0b1b33] min-[440px]:inline">RentFlow</span>
               </Link>
 
-              {role === "PLATFORM_ADMIN" ? (
+              {role === "PLATFORM_ADMIN" && !platformContext ? (
                 <form method="get" action="/app/platform/search" className="rf-search hidden flex-1 md:flex md:max-w-md">
                   <span className="text-neutral-500" aria-hidden="true"><AppIcon name="search" className="h-4 w-4" /></span>
                   <input type="search" name="q" placeholder="Organizations, users, payments..." aria-label="Search the platform" className="w-full min-w-0 border-0 bg-transparent text-sm text-neutral-800 outline-none placeholder:text-neutral-500" />
@@ -207,7 +210,22 @@ export function AppShell({ children, role, userName, workspaceName, demoMode, lo
           </header>
 
           <main id="app-content" tabIndex={-1} className="relative flex-1 overflow-x-hidden px-4 py-5 outline-none sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-            <div className="rf-page relative mx-auto max-w-[1440px]">{children}</div>
+            <div className="rf-page relative mx-auto max-w-[1440px]">
+              {platformContext && (
+                <div className="rf-context-banner" role="status">
+                  <div>
+                    <p className="caption font-medium uppercase tracking-[0.12em] text-neutral-500">System admin mode</p>
+                    <p className="mt-1 text-sm text-neutral-900">You are viewing {platformContext}. This is not an organization administrator session.</p>
+                  </div>
+                  {exitContext && (
+                    <form action={exitContext}>
+                      <button type="submit" className="rf-btn-secondary">Exit organization context</button>
+                    </form>
+                  )}
+                </div>
+              )}
+              {children}
+            </div>
           </main>
 
           <footer className="rf-footer px-4 py-4 sm:px-6 lg:px-8">

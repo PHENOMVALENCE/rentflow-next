@@ -31,4 +31,19 @@ describe("role navigation", () => {
     expect(initialsOf("  Rehema  Ali Kweka ")).toBe("RK");
     expect(initialsOf("")).toBe("?");
   });
+
+  it("keeps platform admins on platform navigation until they enter an organization", () => {
+    const outside = hrefs("PLATFORM_ADMIN");
+    expect(outside).toContain("/app/platform/organizations");
+    expect(outside).not.toContain("/app/tenants");
+    const inside = navigationFor("PLATFORM_ADMIN", { inOrganization: true }).flatMap((group) => group.items.map((item) => item.href));
+    expect(inside).toContain("/app/tenants");
+    expect(inside).toContain("/app/platform");
+  });
+
+  it("highlights only the platform overview on its own page", () => {
+    const overview = navigationFor("PLATFORM_ADMIN")[0].items[0];
+    expect(isNavItemActive(overview, "/app/platform")).toBe(true);
+    expect(isNavItemActive(overview, "/app/platform/payments/abc")).toBe(false);
+  });
 });

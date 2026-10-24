@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { Metric, Panel, Progress, Status } from "@/components/ui";
 import { Avatar } from "@/components/app-shell";
@@ -39,6 +40,8 @@ export default async function Dashboard() {
   // Tenants and supervisors get their own homes (Laravel home-tenant / home-supervisor / home-pending).
   const roleHome = await getRoleHome(session);
   if (roleHome) return <RoleHomeView home={roleHome} />;
+  // Outside an organization context, a platform admin's home is the platform command center (Laravel parity).
+  if (session.role === "PLATFORM_ADMIN" && !session.organizationId) redirect("/app/platform");
 
   const { dashboard, leases, maintenance, source } = await getDashboardReadModel(session);
   const portfolioRole = canManagePortfolio(session.role);

@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { logoutAction } from "@/server/auth/actions";
+import { exitOrganizationContext } from "@/server/rentflow/platform-context-actions";
 import { requireSession } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
 
@@ -20,8 +21,18 @@ export default async function Layout({ children }: { children: React.ReactNode }
     workspaceName = organization?.name ?? "Platform Administration";
   }
 
+  const platformContext = session.role === "PLATFORM_ADMIN" && session.organizationId ? workspaceName : null;
+
   return (
-    <AppShell role={session.role} userName={userName} workspaceName={workspaceName} demoMode={demoMode} logout={demoMode ? undefined : logoutAction}>
+    <AppShell
+      role={session.role}
+      userName={userName}
+      workspaceName={workspaceName}
+      demoMode={demoMode}
+      logout={demoMode ? undefined : logoutAction}
+      platformContext={platformContext}
+      exitContext={platformContext ? exitOrganizationContext : undefined}
+    >
       {children}
     </AppShell>
   );

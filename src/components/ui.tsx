@@ -120,3 +120,36 @@ export function Empty({ icon = "home", title, children, action }: { icon?: AppIc
     </div>
   );
 }
+
+/** Two-column fact grid (Laravel `rf-facts`). Empty values render as an em dash. */
+export function Facts({ items }: { items: [label: string, value: ReactNode][] }) {
+  return (
+    <dl className="rf-facts">
+      {items.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value === null || value === undefined || value === "" ? "—" : value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Recent audit evidence for a resource. */
+export function AuditList({ rows, empty = "No audit events recorded yet." }: { rows: { id: string; action: string; resource: string; at: string }[]; empty?: string }) {
+  if (rows.length === 0) return <p className="rf-panel-empty"><AppIcon name="info" className="h-4 w-4" /> {empty}</p>;
+  return (
+    <ul className="rf-list">
+      {rows.map((row) => (
+        <li key={row.id} className="rf-list-row">
+          <span className="rf-list-icon" aria-hidden="true"><AppIcon name="clock" className="h-[18px] w-[18px]" /></span>
+          <span className="rf-list-main">
+            <span className="rf-list-title block rf-mono">{row.action}</span>
+            <span className="rf-list-meta block">{row.resource}</span>
+          </span>
+          <span className="rf-list-aside text-xs text-[#51607a]">{row.at}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
