@@ -15,101 +15,47 @@ const profileSchema = z.object({
 });
 
 async function scopedTenant(tenantId: string, organizationId: string | null) {
-  return db.tenant.findFirst({
-    where: { id: tenantId, ...(organizationId ? { organizationId } : {}) },
-    select: { id: true, organizationId: true },
-  });
+  return db.tenant.findFirst({ where: { id: tenantId, ...(organizationId ? { organizationId } : {}) }, select: { id: true, organizationId: true } });
+}
+
+function mergeOperationalNotes(existing: string | null, managerNotes: string) {
+  if (!existing?.startsWith("ONBOARDING_JSON:")) return managerNotes || null;
+  try {
+    const payload = JSON.parse(existing.slice("ONBOARDING_JSON:".length)) as Record<string, unknown>;
+    return `ONBOARDING_JSON:${JSON.stringify({ ...payload, managerNotes: managerNotes || "" })}`;
+  } catch {
+    return managerNotes || existing;
+  }
 }
 
 export async function updateTenantProfile(formData: FormData) {
   const session = await requireSession(["PLATFORM_ADMIN", "LANDLORD", "PROPERTY_ADMIN"]);
   const input = profileSchema.parse({
-    tenantId: formData.get("tenantId"),
-    nationalIdLast4: formData.get("nationalIdLast4") || "",
-    emergencyName: formData.get("emergencyName") || "",
-    emergencyPhone: formData.get("emergencyPhone") || "",
-    householdSize: formData.get("householdSize") || undefined,
-    notes: formData.get("notes") || "",
+    tenantId: formData.get("tenantId"), nationalIdLast4: formData.get("nationalIdLast4") || "", emergencyName: formData.get("emergencyName") || "", emergencyPhone: formData.get("emergencyPhone") || "", householdSize: formData.get("householdSize") || undefined, notes: formData.get("notes") || "",
   });
-
   const tenant = await scopedTenant(input.tenantId, session.organizationId);
   if (!tenant) throw new Error("Tenant not found in your organization.");
+  const current = await db.tenantProfile.findUnique({ where: { tenantId: tenant.id }, select: { notes: true } });
+  const notes = mergeOperationalNotes(current?.notes ?? null, input.notes || "");
 
   await db.$transaction(async (tx) => {
     await tx.tenantProfile.upsert({
       where: { tenantId: tenant.id },
-      create: {
-        tenantId: tenant.id,
-        nationalIdLast4: input.nationalIdLast4 || null,
-        emergencyName: input.emergencyName || null,
-        emergencyPhone: input.emergencyPhone || null,
-        householdSize: input.householdSize ?? null,
-        notes: input.notes || null,
-      },
-      update: {
-        nationalIdLast4: input.nationalIdLast4 || null,
-        emergencyName: input.emergencyName || null,
-        emergencyPhone: input.emergencyPhone || null,
-        householdSize: input.householdSize ?? null,
-        notes: input.notes || null,
-      },
+      create: { tenantId: tenant.id, nationalIdLast4: input.nationalIdLast4 || null, emergencyName: input.emergencyName || null, emergencyPhone: input.emergencyPhone || null, householdSize: input.householdSize ?? null, notes },
+      update: { nationalIdLast4: input.nationalIdLast4 || null, emergencyName: input.emergencyName || null, emergencyPhone: input.emergencyPhone || null, householdSize: input.householdSize ?? null, notes },
     });
-
-    await tx.auditLog.create({
-      data: {
-        organizationId: tenant.organizationId,
-        actorId: session.userId,
-        action: "tenant.profile_updated",
-        resourceType: "Tenant",
-        resourceId: tenant.id,
-        metadata: {
-          nationalIdStoredAsLast4Only: Boolean(input.nationalIdLast4),
-          hasEmergencyContact: Boolean(input.emergencyName || input.emergencyPhone),
-          householdSize: input.householdSize ?? null,
-        },
-      },
-    });
+    await tx.auditLog.create({ data: { organizationId: tenant.organizationId, actorId: session.userId, action: "tenant.profile_updated", resourceType: "Tenant", resourceId: tenant.id, metadata: { nationalIdStoredAsLast4Only: Boolean(input.nationalIdLast4), hasEmergencyContact: Boolean(input.emergencyName || input.emergencyPhone), householdSize: input.householdSize ?? null } } });
   });
-
   revalidatePath(`/app/tenants/${tenant.id}`);
 }
 
 export async function requestTenantAttachment(formData: FormData) {
   const session = await requireSession(["PLATFORM_ADMIN", "LANDLORD", "PROPERTY_ADMIN"]);
-  const input = z.object({
-    tenantId: z.string().min(1),
-    kind: z.string().trim().min(2).max(100),
-    dueAt: z.string().optional(),
-  }).parse({
-    tenantId: formData.get("tenantId"),
-    kind: formData.get("kind"),
-    dueAt: formData.get("dueAt") || undefined,
-  });
-
+  const input = z.object({ tenantId: z.string().min(1), kind: z.string().trim().min(2).max(100), dueAt: z.string().optional() }).parse({ tenantId: formData.get("tenantId"), kind: formData.get("kind"), dueAt: formData.get("dueAt") || undefined });
   const tenant = await scopedTenant(input.tenantId, session.organizationId);
   if (!tenant) throw new Error("Tenant not found in your organization.");
-
-  const request = await db.tenantAttachmentRequest.create({
-    data: {
-      tenantId: tenant.id,
-      requestedBy: session.userId,
-      kind: input.kind,
-      status: "PENDING",
-      dueAt: input.dueAt ? new Date(input.dueAt) : null,
-    },
-  });
-
-  await db.auditLog.create({
-    data: {
-      organizationId: tenant.organizationId,
-      actorId: session.userId,
-      action: "tenant.attachment_requested",
-      resourceType: "TenantAttachmentRequest",
-      resourceId: request.id,
-      metadata: { tenantId: tenant.id, kind: input.kind, dueAt: request.dueAt?.toISOString() ?? null },
-    },
-  });
-
+  const request = await db.tenantAttachmentRequest.create({ data: { tenantId: tenant.id, requestedBy: session.userId, kind: input.kind, status: "PENDING", dueAt: input.dueAt ? new Date(input.dueAt) : null } });
+  await db.auditLog.create({ data: { organizationId: tenant.organizationId, actorId: session.userId, action: "tenant.attachment_requested", resourceType: "TenantAttachmentRequest", resourceId: request.id, metadata: { tenantId: tenant.id, kind: input.kind, dueAt: request.dueAt?.toISOString() ?? null } } });
   revalidatePath(`/app/tenants/${tenant.id}`);
 }
 
@@ -118,24 +64,12 @@ export async function cancelTenantAttachmentRequest(formData: FormData) {
   const requestId = z.string().min(1).parse(formData.get("requestId"));
   const request = await db.tenantAttachmentRequest.findUnique({ where: { id: requestId } });
   if (!request) throw new Error("Attachment request not found.");
-
   const tenant = await scopedTenant(request.tenantId, session.organizationId);
   if (!tenant) throw new Error("Attachment request is outside your organization.");
   if (request.status !== "PENDING") throw new Error("Only pending attachment requests can be cancelled.");
-
   await db.$transaction(async (tx) => {
     await tx.tenantAttachmentRequest.update({ where: { id: request.id }, data: { status: "CANCELLED" } });
-    await tx.auditLog.create({
-      data: {
-        organizationId: tenant.organizationId,
-        actorId: session.userId,
-        action: "tenant.attachment_request_cancelled",
-        resourceType: "TenantAttachmentRequest",
-        resourceId: request.id,
-        metadata: { tenantId: tenant.id },
-      },
-    });
+    await tx.auditLog.create({ data: { organizationId: tenant.organizationId, actorId: session.userId, action: "tenant.attachment_request_cancelled", resourceType: "TenantAttachmentRequest", resourceId: request.id, metadata: { tenantId: tenant.id } } });
   });
-
   revalidatePath(`/app/tenants/${tenant.id}`);
 }
