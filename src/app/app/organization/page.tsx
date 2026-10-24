@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { NeedsOrganization } from "@/components/needs-organization";
 import { PageHeader } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
@@ -8,7 +9,7 @@ import { hasPrivateObjectStorage } from "@/server/storage/private-object-store";
 
 export default async function OrganizationPage() {
   const session = await requireSession(["LANDLORD", "PROPERTY_ADMIN", "PLATFORM_ADMIN"]);
-  if (!session.organizationId) notFound();
+  if (!session.organizationId) return <NeedsOrganization session={session} title="Organization" />;
 
   if (!hasDatabaseConfiguration()) {
     return <><PageHeader eyebrow="Organization" title="Organization details" description="Branding settings require persistent storage." /><div className="rf-card max-w-2xl p-6 text-sm text-[var(--muted-strong)]">Connect the production database to manage organization details.</div></>;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { NeedsOrganization } from "@/components/needs-organization";
 import { PageHeader, Status } from "@/components/ui";
 import { requireSession } from "@/server/auth/session";
 import { db, hasDatabaseConfiguration } from "@/server/db";
@@ -8,7 +8,7 @@ import { hasPrivateObjectStorage } from "@/server/storage/private-object-store";
 
 export default async function StandardLeasesPage() {
   const session = await requireSession(["LANDLORD", "PROPERTY_ADMIN", "PLATFORM_ADMIN"]);
-  if (!session.organizationId) notFound();
+  if (!session.organizationId) return <NeedsOrganization session={session} title="Standard leases" />;
   const templates = hasDatabaseConfiguration() ? await db.organizationLeaseTemplate.findMany({ where: { organizationId: session.organizationId, active: true }, orderBy: { createdAt: "desc" } }) : [];
   const templateFor = (months: number) => templates.find((template) => template.name.startsWith(`${months}-month standard lease`));
 
