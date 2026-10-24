@@ -5,6 +5,7 @@ Start with **`ROADMAP.md`** for current status and **`IMPLEMENTATION_ROADMAP.md`
 ## Status and planning
 - `ROADMAP.md` — what is done, what is next, what blocks release.
 - `IMPLEMENTATION_ROADMAP.md` — full implementation sequence, dependencies, milestone gates and production exit criteria.
+- `MODULE_STATUS_TRACKER.md` — conservative current state and next gate for every module.
 - `modules/README.md` — index of detailed implementation specifications for every product module.
 - `PARITY_MATRIX.md` — Laravel → Next.js evidence per capability.
 - `FEATURE_DELIVERY_RECORD.md` — code vs demo vs production-backed readiness.
