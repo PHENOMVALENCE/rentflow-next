@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader, Status } from "@/components/ui";
+import { AppIcon } from "@/components/icons";
+import { Empty, PageHeader, Panel, Status } from "@/components/ui";
 import { canCreateSection } from "@/server/auth/authorization";
 import { requireSession } from "@/server/auth/session";
 import { getLeasesSection } from "@/server/rentflow/operations-read-model";
@@ -15,19 +16,33 @@ export default async function LeasesPage() {
         eyebrow="Operations"
         title={session.role === "TENANT" ? "My leases" : "Leases"}
         description={session.role === "TENANT" ? "Your rental terms, payment state and private lease documents." : "Track lease terms, payment activation, renewal state and private documents."}
-        action={canCreate ? <Link href="/app/leases/new" className="rf-button rf-button-dark">New lease</Link> : undefined}
+        action={canCreate ? <Link href="/app/leases/new" className="rf-button rf-button-dark"><AppIcon name="plus" className="h-4 w-4" /> New lease</Link> : undefined}
       />
 
-      <div className="rf-card overflow-hidden">
-        {rows.length === 0 ? (
-          <p className="p-8 text-center text-sm text-[var(--muted-strong)]">No leases are available in your access scope.</p>
-        ) : rows.map((row) => (
-          <Link key={row.id} href={`/app/leases/${row.id}`} className="flex flex-col gap-4 border-b border-[var(--border)] p-5 last:border-b-0 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between">
-            <div><p className="font-medium">{row.tenant}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.unit} · {row.amount}</p></div>
-            <div className="sm:text-right"><Status>{row.status}</Status><p className="mt-2 text-xs text-[var(--muted)]">Ends {row.end} · Open workspace →</p></div>
-          </Link>
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <Empty icon="calendar" title="No leases available">No leases are available in your current access scope.</Empty>
+      ) : (
+        <Panel title={session.role === "TENANT" ? "Lease history" : "Lease register"} subtitle={`${rows.length} ${rows.length === 1 ? "lease" : "leases"} in scope`} flush>
+          <ul className="rf-list">
+            {rows.map((row) => (
+              <li key={row.id}>
+                <Link href={`/app/leases/${row.id}`} className="rf-list-row">
+                  <span className="rf-list-icon" aria-hidden="true"><AppIcon name="calendar" className="h-[18px] w-[18px]" /></span>
+                  <span className="rf-list-main">
+                    <span className="rf-list-title block">{row.tenant}</span>
+                    <span className="rf-list-meta block">{row.unit} · {row.amount}</span>
+                  </span>
+                  <span className="rf-list-aside">
+                    <Status>{row.status}</Status>
+                    <span className="text-xs text-[var(--muted)]">Ends {row.end}</span>
+                  </span>
+                  <AppIcon name="chevron-right" className="rf-chevron" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </>
   );
 }
